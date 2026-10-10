@@ -3,7 +3,7 @@
 > Автономный AI-агент на базе DeepSeek. 36 инструментов. Нативный GUI.
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)]()
 [![Tools](https://img.shields.io/badge/tools-36-orange.svg)](docs/tools.md)
 [![GUI](https://img.shields.io/badge/GUI-PySide6-purple.svg)]()
@@ -122,7 +122,13 @@ Issues и Pull Requests приветствуются. См. [CONTRIBUTING.md](CO
 
 ## 📄 License
 
-MIT — см. [LICENSE](LICENSE).
+**Proprietary — All Rights Reserved.**
+
+Проект опубликован в ознакомительных целях. Просмотр разрешён,
+но **копирование, изменение, распространение и коммерческое
+использование запрещены** без письменного разрешения автора.
+
+Полные условия — [LICENSE](LICENSE).
 
 ## 🙏 Благодарности
 
