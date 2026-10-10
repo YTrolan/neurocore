@@ -120,6 +120,15 @@
 
 Issues и Pull Requests приветствуются. См. [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## 🤝 Contributors
+
+Проект создан и поддерживается:
+
+- **YTrolan** — автор, дизайн, архитектура ([@YTrolan](https://github.com/YTrolan))
+- **Claude (Anthropic)** — AI-соавтор разработки ([claude.ai](https://claude.ai))
+
+Благодарности библиотекам и сервисам — [CONTRIBUTORS.md](CONTRIBUTORS.md).
+
 ## 📄 License
 
 **Proprietary — All Rights Reserved.**
