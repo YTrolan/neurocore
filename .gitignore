@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Мусор разработки
+*.bak
+*.bak*
+*.GOLDEN
+*.WORKING
+*.broken
+*.log
+gui_control.log
+*.png
+*.jpg
+*.jpeg
+test_gen.png
+screen.png
+browser.png
+
+# Бэкапы
+backup_*/
+backup_*.zip
+_archive/
+
+# Личные данные
+.env
+token.txt
+*.session
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Вспомогательные скрипты
+# Разрешить скриншоты в docs/
+!docs/screenshots/*.png
+!docs/screenshots/*.jpg
