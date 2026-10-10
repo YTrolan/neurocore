@@ -48,3 +48,9 @@ desktop.ini
 # Разрешить скриншоты в docs/
 !docs/screenshots/*.png
 !docs/screenshots/*.jpg
+
+# PyInstaller
+build/
+dist/
+*.spec
+run.py
