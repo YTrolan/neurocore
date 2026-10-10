@@ -4,6 +4,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
+[![Donate](https://img.shields.io/badge/Donate-DonationAlerts-orange)](https://www.donationalerts.com/r/ro1ton_1)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)]()
 [![Tools](https://img.shields.io/badge/tools-36-orange.svg)](docs/tools.md)
 [![GUI](https://img.shields.io/badge/GUI-PySide6-purple.svg)]()
@@ -128,6 +129,16 @@ Issues и Pull Requests приветствуются. См. [CONTRIBUTING.md](CO
 - **Claude (Anthropic)** — AI-соавтор разработки ([claude.ai](https://claude.ai))
 
 Благодарности библиотекам и сервисам — [CONTRIBUTORS.md](CONTRIBUTORS.md).
+
+## 💝 Поддержать проект
+
+Если NeuroCore оказался полезен — можешь поддержать разработку:
+
+[![DonationAlerts](https://img.shields.io/badge/Donate-DonationAlerts-orange)](https://www.donationalerts.com/r/ro1ton_1)
+
+> Ссылка: https://www.donationalerts.com/r/ro1ton_1
+
+Спасибо! ❤️
 
 ## 📄 License
 
