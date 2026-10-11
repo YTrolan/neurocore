@@ -4,19 +4,18 @@ import os
 import subprocess
 import sys
 import time
-import webbrowser
 from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import (QEasingCurve, QEvent, QPoint, QParallelAnimationGroup, QPropertyAnimation,
                              QSize, Qt, QThread, QTimer, Signal)
-from PySide6.QtGui import QFont, QKeySequence, QShortcut
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
                                 QFileDialog, QFrame, QGraphicsOpacityEffect,
                                 QToolButton,
-                                QHBoxLayout, QInputDialog, QLabel, QLineEdit,
-                                QMainWindow, QMenu, QMessageBox, QPushButton,
-                                QScrollArea, QSizePolicy, QSplitter,
+                                QHBoxLayout, QLabel, QLineEdit,
+                                QMainWindow, QMenu, QPushButton,
+                                QScrollArea, QSizePolicy,
                                 QStackedWidget, QTextEdit, QVBoxLayout,
                                 QWidget)
 
@@ -25,11 +24,9 @@ from . import providers as provmod
 from .activity import ActivityBar
 from .animations import (PulsingDots, animate_height, animate_max_width, cross_fade, fade_in, fade_out, fade_and_scale, fade_and_slide_y, pop_in, pulse_scale, slide_fade_in, slide_in_x, slide_in_y, slide_panel, smooth_scroll)
 from .agent.loop import Agent
-from .clipboard import try_get_image_path, is_image_in_clipboard
+from .clipboard import try_get_image_path
 from .core.message import Message, Role
-from .dialogs import PresetDialog, ProviderDialog
-from .extensions import (PLUGIN_DIR, PLUGIN_TEMPLATE, PRESET_DIR,
-                         load_plugins, load_presets, save_preset, delete_preset,
+from .extensions import (load_plugins, load_presets,
                          load_plugin_states)
 from .icons import make_icon
 from .image_preview import AttachThumb, ImagePreview, extract_image_paths
@@ -37,18 +34,16 @@ from .code_panel import CodePanel, extract_code_blocks
 from .md_render import parse as md_parse
 from .model_selector import ModelSelector
 from .palette import CommandPalette
-from .plugins_page import PluginsPage
 from .stylish_dialogs import (info as sd_info,
                                 warning as sd_warning,
                                 error as sd_error,
-                                success as sd_success,
                                 question as sd_question,
                                 ask_text as sd_ask_text)
 from .stylish_dialogs import DialogOverlay
 from .sessions import DIR as SESSION_DIR
 from .sessions import Session
 from .theme import C, QSS
-from .token_manager import (save_token, load_token,
+from .token_manager import (save_token,
                               fetch_token_via_browser)
 from .tools.builtin.files import ListDirTool, ReadFileTool, WriteFileTool
 from .tools.builtin.gui_control import ALL_DESKTOP_TOOLS
@@ -56,7 +51,6 @@ from .tools.builtin.browser_control import ALL_BROWSER_TOOLS
 from .tools.builtin.deepseek_search import DeepSeekSearchTool
 from .tools.builtin.image import GenerateImageTool
 from .tools.builtin.shell import ShellTool
-from .tools.builtin.web import WebFetchTool, WebSearchTool
 from .tools.registry import ToolRegistry
 from .tools_panel import ToolsPanel
 from .trajectory import TrajectoryView
