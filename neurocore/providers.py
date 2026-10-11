@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 
 from .core.message import Message, Role
 from .deepseek_client import DeepSeekClient
+from .token_manager import load_token
 
 
 class Provider(ABC):
@@ -100,7 +101,7 @@ def build(cfg: dict):
     p = cfgmod.active_provider(cfg)
     model = cfg.get("active_model") or (p["models"][0] if p["models"] else "")
     if p["kind"] == "opendeep":
-        token = p.get("api_key") or os.getenv("DEEPSEEK_TOKEN", "")
+        token = p.get("api_key") or os.getenv("DEEPSEEK_TOKEN", "") or load_token()
         thinking = bool(cfg.get("thinking", False))
         return OpenDeepProvider(token=token, model=model, thinking=thinking)
     elif p["kind"] == "openai_compat":

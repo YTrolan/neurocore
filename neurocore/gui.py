@@ -1343,7 +1343,8 @@ class SettingsPage(QWidget):
         t = QLabel("API-токен")
         t.setStyleSheet("font-weight: 700; font-size: 14px;")
         l.addWidget(t)
-        tok = os.getenv("DEEPSEEK_TOKEN", "")
+        from .token_manager import load_token as _lt
+        tok = _lt() or os.getenv("DEEPSEEK_TOKEN", "")
         s = QLabel("● Установлен" if tok else "● Не задан")
         s.setStyleSheet(
             "color: " + (C["success"] if tok else C["danger"]) + ";")
