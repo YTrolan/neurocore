@@ -51,7 +51,10 @@ from .theme import C, QSS
 from .token_manager import (save_token, load_token,
                               fetch_token_via_browser)
 from .tools.builtin.files import ListDirTool, ReadFileTool, WriteFileTool
+from .tools.builtin.roblox_auto import RobloxAutoPlayTool
 from .tools.builtin.gui_control import ALL_DESKTOP_TOOLS
+from .tools.builtin.toolkit_v2 import ALL_V2_TOOLS
+from .tools.builtin.toolkit_v3 import ALL_V3_TOOLS
 from .tools.builtin.browser_control import ALL_BROWSER_TOOLS
 from .tools.builtin.deepseek_search import DeepSeekSearchTool
 from .tools.builtin.image import GenerateImageTool
@@ -379,39 +382,48 @@ class ChatArea(QScrollArea):
 
         event.accept()
 
-    def add(self, w, anim=True, batch=False):
+    def add(self, w, anim=False, batch=False):
+        """Добавить виджет. Анимация отключена, чтобы длинные чаты не ломались."""
+        # Никаких maximumHeight=0 — сразу нормальная высота
+        try:
+            w.setMaximumHeight(16777215)
+            w.setMinimumHeight(0)
+            w.setVisible(True)
+        except Exception:
+            pass
+
         self.lay.insertWidget(self.lay.count() - 1, w)
-        if anim:
+
+        # Ограничение: не держим больше 300 виджетов в памяти
+        try:
+            while self.lay.count() > 301:
+                it = self.lay.takeAt(0)
+                old = it.widget()
+                if old is not None:
+                    old.setParent(None)
+                    old.deleteLater()
+        except Exception:
+            pass
+
+        # Прокрутка вниз
+        try:
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(30, self._scroll_to_end)
+        except Exception:
+            pass
+
+    def _scroll_to_end(self):
+        """Прокрутить в самый низ."""
+        try:
+            sb = self.verticalScrollBar()
+            sb.setValue(sb.maximum())
+        except Exception:
             try:
-                w.adjustSize()
+                self.to_end()
             except Exception:
                 pass
-            try:
-                eff = QGraphicsOpacityEffect(w)
-                eff.setOpacity(0.0)
-                w.setGraphicsEffect(eff)
 
-                fade = QPropertyAnimation(eff, b"opacity", w)
-                fade.setDuration(220)
-                fade.setStartValue(0.0)
-                fade.setEndValue(1.0)
-                fade.setEasingCurve(QEasingCurve.OutCubic)
 
-                # после анимации — вернуть виджету полную высоту
-                def _restore():
-                    try:
-                        w.setMaximumHeight(16777215)
-                        w.setGraphicsEffect(None)
-                    except Exception:
-                        pass
-
-                fade.finished.connect(_restore)
-                fade.start(QParallelAnimationGroup.DeleteWhenStopped)
-                w._fade_anim = fade
-            except Exception:
-                pass
-        if not batch:
-            QTimer.singleShot(60, lambda: self.to_end(smooth=True, duration=320))
     def _on_scroll_value(self, value):
         """Пользователь сам поскроллил — проверяем, внизу ли он."""
         sb = self.verticalScrollBar()
@@ -2190,7 +2202,17 @@ class MainWindow(QMainWindow):
         for _T in ALL_BROWSER_TOOLS:
             reg.register(_T())
 
+        # v2 toolkit — 50 новых инструментов
+        for _T in ALL_V2_TOOLS:
+            reg.register(_T())
+
+        # V3 toolkit — 93 инструмента
+        for _T in ALL_V3_TOOLS:
+            reg.register(_T())
+
         reg.register(DeepSeekSearchTool())
+
+        reg.register(RobloxAutoPlayTool())
         self._plugins_info = load_plugins(reg)
         a = Agent(provider=provider, tools=reg)
         for m in self.current_session.messages:
@@ -2504,11 +2526,48 @@ def _qt_msg_filter(mode, ctx, msg):
     for pattern in _QT_QUIET:
         if pattern in msg:
             return
-    import sys as _s
-    _s.stderr.write(msg + "\n")
+    try:
+        import sys as _s
+        if _s.stderr is not None:
+            _s.stderr.write(msg + "\n")
+    except Exception:
+        pass
+
+
+def _excepthook(exc_type, exc_val, exc_tb):
+    """Логирует исключения, но не падает."""
+    try:
+        import traceback as _tb
+        tb = "".join(_tb.format_exception(exc_type, exc_val, exc_tb))
+        # В файл рядом с .exe
+        try:
+            import sys as _s
+            from pathlib import Path as _P
+            log = _P.cwd() / "neurocore_crash.log"
+            with open(log, "a", encoding="utf-8") as f:
+                import datetime as _dt
+                f.write(f"\n[{_dt.datetime.now()}]\n{tb}\n")
+        except Exception:
+            pass
+    except Exception:
+        pass
 
 
 def main():
+    import sys as _s
+    _s.excepthook = _excepthook
+    # Фикс для .exe: sys.stderr и sys.stdout могут быть None
+    import sys as _s, os as _o
+    if _s.stderr is None:
+        try:
+            _s.stderr = open(_o.devnull, "w")
+        except Exception:
+            pass
+    if _s.stdout is None:
+        try:
+            _s.stdout = open(_o.devnull, "w")
+        except Exception:
+            pass
     try:
         from PySide6.QtCore import qInstallMessageHandler
         qInstallMessageHandler(_qt_msg_filter)

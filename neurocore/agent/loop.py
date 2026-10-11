@@ -243,6 +243,18 @@ class Agent:
 
             calls = self._parse_tool_calls(response.content)
             if not calls:
+                if "DSML" in response.content:
+                    self._emit("parse_error", error="raw DSML in text")
+                    hint = (
+                        "Твой вызов инструмента не распознан. "
+                        "Ответь ЕЩЁ РАЗ, соблюдая правила: "
+                        "1) только ОДИН закрывающий тег </|DSML|invoke>; "
+                        "2) пути пиши через forward slash "
+                        "(C:/Users/rolan/Downloads), а не через backslash; "
+                        "3) JSON должен быть валидным."
+                    )
+                    self.messages.append(Message(Role.USER, hint))
+                    continue
                 return response.content
 
             had_progress = False

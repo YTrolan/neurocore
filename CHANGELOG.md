@@ -5,6 +5,32 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/),
 версии следуют [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.0.2] - 2026-10-11
+
+### Добавлено
+- **93 новых инструмента** (было 36, стало 129):
+  - Windows System (10): реестр, службы, задачи, firewall, users
+  - Dev Tools (15): git, pip, pytest, flake8, venv, AST-анализ
+  - Data / Format (13): TOML, INI, XML, SQLite, MD→HTML, pickle
+  - Web / API (12): POST, HEAD, DNS, SSL, URL-parse, JWT-decode
+  - Text Advanced (14): slug, transliterate, extract emails/IP/urls/dates
+  - Encoding / Crypto (9): hex, base32/85, HMAC, password-gen
+  - Math / Random (10): math_eval, stats, prime, fibonacci, dice
+  - Time / Date (10): timestamps, cron, timezone, calendar
+- **Roblox автоплей** — агент играет через `pydirectinput` + vision-модель
+
+### Исправлено
+- **Длинные чаты** — сообщения больше не пропадают при 50+ сообщениях
+- **Кодировка** — русские буквы в выводе Windows-команд (cp866)
+- **Пути к файлам** — тулы ищут файл в cwd / Downloads / output_dir
+- **CSV → SQLite** — параметр `csv` больше не перекрывает модуль
+- **`.exe` без консоли** — защита от `sys.stderr = None`
+- **Логи краха** — пишутся в `neurocore_crash.log`
+
+### Изменено
+- **Лицензия** — с MIT на Custom Source-Available
+  (можно модернизировать, нельзя продавать и публиковать заново)
+
 ## [1.0.0] - 2026-10-10
 
 ### Добавлено

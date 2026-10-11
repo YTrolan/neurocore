@@ -14,6 +14,8 @@ from .toolkit import (
     ZipCreateTool, ZipExtractTool,
     ALL_TOOLS,
 )
+from .toolkit_v2 import ALL_V2_TOOLS
+from .toolkit_v3 import ALL_V3_TOOLS
 
 __all__ = [
     "DeepSeekSearchTool",

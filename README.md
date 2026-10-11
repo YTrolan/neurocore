@@ -1,12 +1,12 @@
 # 🧠 NeuroCore
 
-> Автономный AI-агент на базе DeepSeek. 36 инструментов. Нативный GUI.
+> Автономный AI-агент на базе DeepSeek. 129 инструментов. Нативный GUI.
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 [![Donate](https://img.shields.io/badge/Donate-DonationAlerts-orange)](https://www.donationalerts.com/r/ro1ton_1)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)]()
-[![Tools](https://img.shields.io/badge/tools-36-orange.svg)](docs/tools.md)
+[![Tools](https://img.shields.io/badge/tools-129-orange.svg)](docs/tools.md)
 [![GUI](https://img.shields.io/badge/GUI-PySide6-purple.svg)]()
 
 ![NeuroCore](docs/screenshots/main_menu.png)
@@ -14,7 +14,7 @@
 ## ✨ Возможности
 
 - 💬 **Чат с DeepSeek** — V4 Pro / Flash / Reasoner
-- 🛠️ **36 инструментов** — файлы, shell, интернет, GUI-контроль, браузер
+- 🛠️ **129 инструментов** — файлы, shell, интернет, GUI-контроль, браузер, БД, данные
 - 📝 **Code Panel** — живая панель кода справа (как в Cursor/Codex):
   подсветка синтаксиса, номера строк, авто-открытие файлов
 - 🔍 **DeepSeek Search** — встроенный поиск на Flash (3 сек)
@@ -25,6 +25,11 @@
 - 📁 **Многосессионный чат** — история сохраняется
 - 🎭 **Три режима доступа** — только чтение / workspace / полный
 - ⚙️ **Папка сохранения** — файлы агента в выбранной директории
+- 🤖 **Roblox автоплей** — агент играет сам
+- 📊 **SQLite, CSV, JSON, YAML, XML** — работа с данными
+- 📄 **Word, PDF, Excel** — чтение документов
+- 🔐 **Криптография** — хеши, HMAC, пароли
+- 🪟 **Система Windows** — реестр, службы, задачи
 - ⌨️ **Палитра команд** — Ctrl+K
 
 ## 📸 Скриншоты
@@ -68,7 +73,7 @@
 2. **Переменная окружения** — `set DEEPSEEK_TOKEN=...`
 3. **Файл** — `~/.neurocore/token.txt`
 
-## 🛠️ Инструменты (36)
+## 🛠️ Инструменты (129)
 
 | Категория | Инструменты |
 |---|---|
