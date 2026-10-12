@@ -15,7 +15,7 @@ NEEDED_PACKAGES = [
     "python-docx", "pypdf", "openpyxl", "pyyaml",
     "psutil", "pillow", "markdown", "xmltodict",
     "croniter", "tomli-w", "pydirectinput", "opencv-python",
-    "pyte", "winpty", "pygetwindow", "pyperclip", "playwright",
+    "pyte", "pywinpty", "pygetwindow", "pyperclip", "playwright",
     "wasmtime", "numpy", "requests", "curl_cffi",
     "opendeep", "PySide6",
 ]
@@ -102,7 +102,7 @@ cmd = [
     "--noconfirm",
     "--clean",
     "--log-level", "ERROR",
-    str(ROOT / "run.py"),
+    str(ROOT / "neurocore/gui.py"),
 
     # ---- Основные библиотеки ----
     "--collect-all", "opendeep",
@@ -126,7 +126,7 @@ cmd = [
     "--collect-all", "tomli_w",
     "--collect-all", "tomli",
     "--collect-all", "pyte",
-    "--collect-all", "winpty",
+    "--collect-all", "pywinpty",
     "--collect-all", "playwright",
 
     # ---- Скрытые импорты ----
