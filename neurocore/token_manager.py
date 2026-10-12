@@ -1,9 +1,43 @@
+try:
+    import keyring
+    _KEYRING_OK = True
+except ImportError:
+    _KEYRING_OK = False
 """Менеджер токена DeepSeek — хранит в ~/.neurocore/token.txt."""
 import json
 import os
 import shutil
 import time
 from pathlib import Path
+
+
+# --- keyring-обёртки ---
+_KEYRING_SERVICE = "NeuroCore"
+_KEYRING_USER = "deepseek_token"
+
+
+def _save_token_secure(token: str) -> bool:
+    """Сохранить токен через keyring. True если получилось."""
+    if not _KEYRING_OK:
+        return False
+    try:
+        keyring.set_password(_KEYRING_SERVICE, _KEYRING_USER, token)
+        return True
+    except Exception as e:
+        print(f"[keyring] save failed: {e}")
+        return False
+
+
+def _load_token_secure() -> str | None:
+    if not _KEYRING_OK:
+        return None
+    try:
+        return keyring.get_password(_KEYRING_SERVICE, _KEYRING_USER)
+    except Exception as e:
+        print(f"[keyring] load failed: {e}")
+        return None
+
+
 
 TOKEN_DIR = Path.home() / ".neurocore"
 TOKEN_FILE = TOKEN_DIR / "token.txt"

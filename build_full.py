@@ -102,7 +102,7 @@ cmd = [
     "--noconfirm",
     "--clean",
     "--log-level", "ERROR",
-    str(ROOT / "neurocore/gui.py"),
+    str(ROOT / "run.py"),
 
     # ---- Основные библиотеки ----
     "--collect-all", "opendeep",

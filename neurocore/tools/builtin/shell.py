@@ -1,9 +1,37 @@
+import re
 from shutil import which as shutil_which
 import os
 import platform
 import subprocess
 
 from ..base import Tool
+
+# Опасные команды — блокируются до выполнения.
+# Не whitelist (слишком жёстко), а denylist (быстро и практично).
+DANGEROUS_PATTERNS = [
+    r"\brm\s+-rf\s+/",
+    r"\bmkfs\b",
+    r"\bformat\s+[a-zA-Z]:",
+    r"\bdiskpart\b",
+    r"\bshutdown\b",
+    r"\breboot\b",
+    r"\bhalt\b",
+    r"\bdd\s+if=.*of=/dev/",
+    r":\(\)\s*\{\s*:\|:&\s*\}\s*;\s*:",  # fork bomb
+    r"\bdel\s+/[fsq]\s+/[fsq]?\s*[a-zA-Z]:\\",
+    r"\brd\s+/s\s+/q\s+[a-zA-Z]:\\",
+    r">\s*/dev/sd[a-z]",
+]
+
+_DANGEROUS_RE = re.compile("|".join(f"(?:{p})" for p in DANGEROUS_PATTERNS), re.IGNORECASE)
+
+
+def is_dangerous(command: str) -> str | None:
+    """Возвращает описание угрозы или None."""
+    m = _DANGEROUS_RE.search(command)
+    return m.group(0) if m else None
+
+
 
 
 # Поддерживаемые оболочки: key -> argv
@@ -53,6 +81,9 @@ class ShellTool(Tool):
         return list(base) + [command]
 
     def run(self, command: str) -> str:
+        threat = is_dangerous(command)
+        if threat:
+            return f"[blocked] опасная команда: {threat!r}"
         try:
             argv = self._shell_argv(command)
             r = subprocess.run(

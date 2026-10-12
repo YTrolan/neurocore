@@ -50,7 +50,7 @@ jobs:
           pip install pyinstaller
       - name: Build Linux binary
         run: |
-          pyinstaller --name NeuroCore --onefile --noconfirm --clean --log-level ERROR --hidden-import wasmtime --hidden-import numpy --collect-all opendeep --collect-all curl_cffi --collect-all wasmtime --collect-all numpy --collect-all pyte --collect-all pyperclip neurocore/gui.py
+          pyinstaller --name NeuroCore --onefile --noconfirm --clean --log-level ERROR --hidden-import wasmtime --hidden-import numpy --collect-all opendeep --collect-all curl_cffi --collect-all wasmtime --collect-all numpy --collect-all pyte --collect-all pyperclip run.py
       - name: Rename
         run: mv dist/NeuroCore dist/NeuroCore-linux-x64
       - name: Upload Linux binary
