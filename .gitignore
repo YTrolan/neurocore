@@ -54,3 +54,20 @@ build/
 dist/
 *.spec
 run.py
+
+
+# Тестовый мусор
+*.db
+*.sqlite
+*.sqlite3
+README.html
+test_*.csv
+users.csv
+1.py
+_commit_msg.txt
+neurocore_crash.log
+roblox_screen.png
+
+# PyInstaller
+build_full.py.bak
+run_old.py.bak

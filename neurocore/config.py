@@ -20,6 +20,10 @@ class ProviderConfig:
 
 
 DEFAULTS = {
+    "browser_kind": "auto",
+
+    "chat_limit": 100,
+
     "output_dir": "",
     "providers": [
         {

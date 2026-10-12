@@ -12,8 +12,7 @@ from PySide6.QtCore import (QEasingCurve, QEvent, QPoint, QParallelAnimationGrou
                              QSize, Qt, QThread, QTimer, Signal)
 from PySide6.QtGui import QFont, QKeySequence, QShortcut
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
-                                QFileDialog, QFrame, QGraphicsOpacityEffect,
-                                QToolButton,
+                                QFileDialog, QFrame,                                QToolButton,
                                 QHBoxLayout, QInputDialog, QLabel, QLineEdit,
                                 QMainWindow, QMenu, QMessageBox, QPushButton,
                                 QScrollArea, QSizePolicy, QSplitter,
@@ -383,18 +382,33 @@ class ChatArea(QScrollArea):
         event.accept()
 
     def add(self, w, anim=False, batch=False):
-        """Добавить виджет. Анимация отключена, чтобы длинные чаты не ломались."""
-        # Никаких maximumHeight=0 — сразу нормальная высота
+        """Добавить виджет. Правильный порядок: parent → layout → show."""
+        # 1. Сначала даём родителя — виджет НЕ становится top-level
+        try:
+            parent_widget = self.lay.parentWidget()
+            if parent_widget is not None and w.parent() is None:
+                w.setParent(parent_widget)
+                w.setVisible(False)
+        except Exception:
+            pass
+
+        # 2. Настройки размеров
         try:
             w.setMaximumHeight(16777215)
             w.setMinimumHeight(0)
+        except Exception:
+            pass
+
+        # 3. Вставляем в layout (родитель уже есть)
+        self.lay.insertWidget(self.lay.count() - 1, w)
+
+        # 4. Теперь безопасно показываем
+        try:
             w.setVisible(True)
         except Exception:
             pass
 
-        self.lay.insertWidget(self.lay.count() - 1, w)
-
-        # Ограничение: не держим больше 300 виджетов в памяти
+        # 5. Ограничение: не больше 300 виджетов
         try:
             while self.lay.count() > 301:
                 it = self.lay.takeAt(0)
@@ -405,12 +419,24 @@ class ChatArea(QScrollArea):
         except Exception:
             pass
 
-        # Прокрутка вниз
+        # 6. Прокрутка вниз
         try:
             from PySide6.QtCore import QTimer
             QTimer.singleShot(30, self._scroll_to_end)
         except Exception:
             pass
+
+    def _scroll_to_end(self):
+        """Прокрутить в самый низ."""
+        try:
+            sb = self.verticalScrollBar()
+            sb.setValue(sb.maximum())
+        except Exception:
+            try:
+                self.to_end()
+            except Exception:
+                pass
+
 
     def _scroll_to_end(self):
         """Прокрутить в самый низ."""
@@ -2222,7 +2248,78 @@ class MainWindow(QMainWindow):
                 a.messages.append(Message(Role.ASSISTANT, m["content"]))
         return a
 
+    def _maybe_rotate_session(self):
+        """Если чат достиг лимита — создаём новую сессию (сохранив текущую)."""
+        try:
+            from . import config as _cfg
+            limit = int(_cfg.load().get("chat_limit", 100))
+        except Exception:
+            limit = 100
+
+        if not self.current_session:
+            return
+        msgs = self.current_session.messages or []
+        if len(msgs) < limit:
+            return
+
+        print(f"[auto-session] чат достиг {len(msgs)} сообщений — новый диалог", flush=True)
+
+        # Сохраняем старую
+        try:
+            self.current_session.save()
+        except Exception:
+            pass
+
+        # Берём последние 6 сообщений как контекст
+        tail = msgs[-6:] if len(msgs) > 6 else list(msgs)
+
+        # Создаём новую
+        try:
+            from .sessions import Session
+            old_title = self.current_session.title or "Чат"
+            new = Session.new(model=self.current_session.model)
+            new.title = old_title + " (продолжение)"
+            for m in tail:
+                try:
+                    new.messages.append(dict(m))
+                except Exception:
+                    pass
+            new.save()
+        except Exception as e:
+            print(f"[auto-session] ошибка создания: {e}", flush=True)
+            return
+
+        # Переключаемся на неё
+        try:
+            self.load_session(new.id)
+        except Exception as e:
+            print(f"[auto-session] ошибка загрузки: {e}", flush=True)
+            return
+
+        # Показать уведомление в чате
+        try:
+            from PySide6.QtWidgets import QLabel
+            lbl = QLabel(
+                "ⓘ Чат достиг лимита. Начата новая сессия "
+                "(последние сообщения перенесены).")
+            lbl.setStyleSheet(
+                "background: " + C["card"] + "; "
+                "color: " + C["text_dim"] + "; "
+                "border-radius: 10px; "
+                "padding: 8px 14px; font-size: 12px; "
+                "margin: 4px 20px;")
+            lbl.setWordWrap(True)
+            self.chat.add(lbl)
+        except Exception:
+            pass
+
+        try:
+            self.sidebar._refresh()
+        except Exception:
+            pass
+
     def send(self, text):
+        self._maybe_rotate_session()
         if self.worker and self.worker.isRunning():
             return
         attachments = getattr(self, "_pending_attachments", [])

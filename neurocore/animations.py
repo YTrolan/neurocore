@@ -1,330 +1,397 @@
-"""Сверхплавные анимации — 60-120 fps ощущение."""
-from PySide6.QtCore import (QEasingCurve, QParallelAnimationGroup, QPoint,
-                             QPropertyAnimation, QTimer, Qt, QVariantAnimation)
-from PySide6.QtWidgets import (QGraphicsOpacityEffect, QHBoxLayout, QLabel,
-                                QStackedWidget, QWidget)
+"""NeuroCore анимации — плавные и заметные, без QGraphicsEffect."""
+import math
+from PySide6.QtCore import (QPropertyAnimation, QEasingCurve, QPoint,
+                             QParallelAnimationGroup, QSequentialAnimationGroup,
+                             QTimer, Qt, QSize, QAbstractAnimation, QRect)
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QGraphicsOpacityEffect
 
 
-# Easing-константы для разных сценариев
-EASE_SMOOTH = QEasingCurve.OutSine       # супер-плавное торможение
-EASE_SOFT = QEasingCurve.InOutSine       # идеально симметричное
-EASE_SNAP = QEasingCurve.OutQuad         # быстрое с мягкой остановкой
-EASE_INOUT = QEasingCurve.InOutSine      # идеально плавный вход-выход
+# ============================================================
+# БАЗОВЫЕ
+# ============================================================
+def _ensure_visible(w):
+    try:
+        if not w.isVisible():
+            w.setVisible(True)
+    except Exception:
+        pass
 
 
-def _ensure_opacity_effect(widget):
-    eff = widget.graphicsEffect()
-    if not isinstance(eff, QGraphicsOpacityEffect):
-        eff = QGraphicsOpacityEffect(widget)
-        eff.setOpacity(1.0)
-        widget.setGraphicsEffect(eff)
-    return eff
+def animate_pos(w, target, duration=320, easing=None, delay=0):
+    if easing is None:
+        easing = QEasingCurve.OutCubic
+    a = QPropertyAnimation(w, b"pos", w)
+    a.setDuration(duration)
+    a.setStartValue(w.pos())
+    a.setEndValue(target)
+    a.setEasingCurve(easing)
+    if delay > 0:
+        QTimer.singleShot(delay, lambda: a.start(QAbstractAnimation.DeleteWhenStopped))
+    else:
+        a.start(QAbstractAnimation.DeleteWhenStopped)
+    w._anim_pos = a
+    return a
 
 
-def _prep_anim(anim):
-    """Одна тонкая настройка для всех анимаций."""
-    anim.setEasingCurve(EASE_SMOOTH)
-    return anim
+def animate_size(w, target, duration=320, easing=None):
+    if easing is None:
+        easing = QEasingCurve.OutBack
+    a = QPropertyAnimation(w, b"size", w)
+    a.setDuration(duration)
+    a.setStartValue(w.size())
+    a.setEndValue(target)
+    a.setEasingCurve(easing)
+    a.start(QAbstractAnimation.DeleteWhenStopped)
+    w._anim_sz = a
+    return a
 
 
-def fade_in(w, duration=260):
-    """no-op."""
+def animate_height(w, target, duration=320, easing=None):
+    if easing is None:
+        easing = QEasingCurve.OutCubic
+    a = QPropertyAnimation(w, b"maximumHeight", w)
+    a.setDuration(duration)
+    a.setStartValue(w.maximumHeight())
+    a.setEndValue(target)
+    a.setEasingCurve(easing)
+    a.start(QAbstractAnimation.DeleteWhenStopped)
+    w._anim_h = a
+    return a
+
+
+def animate_width(w, target, duration=320, easing=None):
+    if easing is None:
+        easing = QEasingCurve.OutCubic
+    a = QPropertyAnimation(w, b"maximumWidth", w)
+    a.setDuration(duration)
+    a.setStartValue(w.maximumWidth())
+    a.setEndValue(target)
+    a.setEasingCurve(easing)
+    a.start(QAbstractAnimation.DeleteWhenStopped)
+    w._anim_w = a
+    return a
+
+
+def animate_max_width(w, target, duration=320):
+    return animate_width(w, target, duration)
+
+
+def animate_max_height(w, target, duration=320):
+    return animate_height(w, target, duration)
+
+
+# ============================================================
+# SLIDE — выезды
+# ============================================================
+def slide_in(w, direction="right", distance=30, duration=320, delay=0):
+    """direction: left | right | up | down"""
+    _ensure_visible(w)
+    target = w.pos()
+    dx, dy = 0, 0
+    if direction == "right":
+        dx = distance
+    elif direction == "left":
+        dx = -distance
+    elif direction == "up":
+        dy = -distance
+    elif direction == "down":
+        dy = distance
+
+    w.move(target + QPoint(dx, dy))
+    return animate_pos(w, target, duration, QEasingCurve.OutBack, delay)
+
+
+def slide_in_x(w, distance=20, duration=320, delay=0):
+    return slide_in(w, "right", distance, duration, delay)
+
+
+def slide_in_y(w, distance=15, duration=320, delay=0):
+    return slide_in(w, "down", distance, duration, delay)
+
+
+def slide_from_left(w, distance=30, duration=340, delay=0):
+    return slide_in(w, "left", distance, duration, delay)
+
+
+def slide_from_bottom(w, distance=25, duration=340, delay=0):
+    return slide_in(w, "down", distance, duration, delay)
+
+
+def slide_fade_in(w, duration=300, delay=0):
+    return slide_in_y(w, 12, duration, delay)
+
+
+def slide_panel(w, target_width, duration=340):
+    return animate_width(w, target_width, duration)
+
+
+# ============================================================
+# PULSE — привлекающие внимание
+# ============================================================
+def pulse_size(w, scale=1.06, duration=280):
+    """Пульс — увеличение и возврат."""
+    _ensure_visible(w)
+    start = w.size()
+    peak = QSize(int(start.width() * scale), int(start.height() * scale))
+    seq = QSequentialAnimationGroup(w)
+
+    up = QPropertyAnimation(w, b"size", w)
+    up.setDuration(duration // 2)
+    up.setStartValue(start)
+    up.setEndValue(peak)
+    up.setEasingCurve(QEasingCurve.OutQuad)
+
+    down = QPropertyAnimation(w, b"size", w)
+    down.setDuration(duration // 2)
+    down.setStartValue(peak)
+    down.setEndValue(start)
+    down.setEasingCurve(QEasingCurve.OutBack)
+
+    seq.addAnimation(up)
+    seq.addAnimation(down)
+    seq.start(QAbstractAnimation.DeleteWhenStopped)
+    w._anim_p = seq
+    return seq
+
+
+def pulse_window_opacity(w, low=0.85, high=1.0, duration=1200):
+    """Бесконечный пульс прозрачности окна (безопасно)."""
+    try:
+        a = QPropertyAnimation(w, b"windowOpacity", w)
+        a.setDuration(duration)
+        a.setStartValue(high)
+        a.setKeyValueAt(0.5, low)
+        a.setEndValue(high)
+        a.setLoopCount(-1)
+        a.setEasingCurve(QEasingCurve.InOutSine)
+        a.start(QAbstractAnimation.DeleteWhenStopped)
+        w._anim_op = a
+        return a
+    except Exception:
+        return None
+
+
+def bounce(w, height=8, duration=420):
+    """Подпрыгивание."""
+    _ensure_visible(w)
+    start = w.pos()
+    peak = start - QPoint(0, height)
+    seq = QSequentialAnimationGroup(w)
+
+    up = QPropertyAnimation(w, b"pos", w)
+    up.setDuration(duration * 2 // 5)
+    up.setStartValue(start)
+    up.setEndValue(peak)
+    up.setEasingCurve(QEasingCurve.OutQuad)
+
+    down = QPropertyAnimation(w, b"pos", w)
+    down.setDuration(duration * 3 // 5)
+    down.setStartValue(peak)
+    down.setEndValue(start)
+    down.setEasingCurve(QEasingCurve.OutBounce)
+
+    seq.addAnimation(up)
+    seq.addAnimation(down)
+    seq.start(QAbstractAnimation.DeleteWhenStopped)
+    w._anim_b = seq
+    return seq
+
+
+def shake(w, amplitude=6, duration=460):
+    """Дрожание по X."""
+    _ensure_visible(w)
+    start = w.pos()
+    a = QPropertyAnimation(w, b"pos", w)
+    a.setDuration(duration)
+    steps = 12
+    for i in range(steps + 1):
+        t = i / steps
+        offset = int(amplitude * math.sin(t * math.pi * 8) * (1 - t))
+        a.setKeyValueAt(t, start + QPoint(offset, 0))
+    a.setEndValue(start)
+    a.start(QAbstractAnimation.DeleteWhenStopped)
+    w._anim_shk = a
+    return a
+
+
+def swing(w, angle_deg=6, duration=500):
+    """Покачивание через поворот rotation (через styleSheet)."""
+    # простое — через движок pos
+    _ensure_visible(w)
+    start = w.pos()
+    radius = 4
+    a = QPropertyAnimation(w, b"pos", w)
+    a.setDuration(duration)
+    for i in range(9):
+        t = i / 8
+        angle = math.sin(t * math.pi * 2) * (1 - t) * math.radians(angle_deg)
+        dx = int(math.sin(angle) * radius * 8)
+        a.setKeyValueAt(t, start + QPoint(dx, 0))
+    a.setEndValue(start)
+    a.start(QAbstractAnimation.DeleteWhenStopped)
+    w._anim_sw = a
+    return a
+
+
+def grow_in(w, duration=340, delay=0):
+    """Появление через рост высоты."""
+    _ensure_visible(w)
+    target = w.maximumHeight() if w.maximumHeight() < 100000 else w.sizeHint().height()
+    if target <= 0:
+        target = w.sizeHint().height() or 40
+    w.setMaximumHeight(0)
+    if delay > 0:
+        QTimer.singleShot(delay, lambda: animate_height(w, target, duration))
+    else:
+        animate_height(w, target, duration)
+
+
+# ============================================================
+# ЦВЕТ — без эффектов, через stylesheet
+# ============================================================
+def flash_stylesheet(w, color="#7ec8ff", duration=500):
+    """Подсветка — короткий цветной фон."""
+    try:
+        orig = w.styleSheet()
+        w.setStyleSheet(orig + f"\nbackground-color: {color};")
+        QTimer.singleShot(duration, lambda: w.setStyleSheet(orig))
+    except Exception:
+        pass
+
+
+# ============================================================
+# СТАРЫЕ ИМЕНА — для совместимости
+# ============================================================
+def flash(w, *a, **k):
+    return flash_stylesheet(w)
+
+
+def fade_in(w, duration=300, delay=0):
+    _ensure_visible(w)
+    return slide_in_y(w, 10, duration, delay)
+
+
+def fade_out(w, duration=220, on_done=None):
+    _ensure_visible(w)
+    start = w.pos()
+    end = start + QPoint(0, -10)
+    a = animate_pos(w, end, duration, QEasingCurve.InCubic)
+    QTimer.singleShot(duration, lambda: w.setVisible(False))
+    if on_done:
+        QTimer.singleShot(duration + 10, on_done)
+    return a
+
+
+def fade_and_slide_y(w, duration=280, offset=10):
+    return slide_in_y(w, offset, duration)
+
+
+def cross_fade(old, new, duration=260):
+    try:
+        old.setVisible(False)
+        _ensure_visible(new)
+        slide_in_y(new, 10, duration)
+    except Exception:
+        pass
+
+
+def pop_in(w, duration=280):
+    return pulse_size(w, 1.06, duration)
+
+
+def fade_and_scale(w, duration=280, scale=1.05):
+    return pulse_size(w, scale, duration)
+
+
+def pulse_scale(w, duration=2000, scale=1.02):
+    return pulse_size(w, scale, duration)
+
+
+def glow(w, *a, **k):
+    return flash_stylesheet(w, "#7ec8ff", 600)
+
+
+def ripple(w, *a, **k):
+    return pulse_size(w, 1.05, 220)
+
+
+def pop(w, scale=1.04, duration=240):
+    return pulse_size(w, scale, duration)
+
+
+def spin_icon(label, *a, **k):
     return None
 
 
-def fade_out(widget, duration=280, on_finished=None, easing=QEasingCurve.InQuad):
-    eff = _ensure_opacity_effect(widget)
-    anim = QPropertyAnimation(eff, b"opacity", widget)
-    anim.setDuration(duration)
-    anim.setStartValue(eff.opacity())
-    anim.setEndValue(0.0)
-    anim.setEasingCurve(easing)
-    if on_finished:
-        anim.finished.connect(on_finished)
-    anim.start(QPropertyAnimation.DeleteWhenStopped)
-    widget._fade_anim = anim
-    return anim
+def rotate_forever(label, *a, **k):
+    return None
 
 
-def cross_fade(stack, new_widget, duration=420):
-    """Плавный переход между страницами — синхронно."""
-    old = stack.currentWidget()
-    if old is new_widget:
-        return None
-    if old is None:
-        stack.setCurrentWidget(new_widget)
-        return fade_in(new_widget, duration)
-    # одновременно: старое гаснет, новое появляется
-    stack.setCurrentWidget(new_widget)
-    fade_in(new_widget, duration)
-    fade_out(old, int(duration * 0.5))
+def stop_rotate(label):
+    pass
 
 
-def pop_in(widget, duration=440):
-    eff = _ensure_opacity_effect(widget)
-    anim = QPropertyAnimation(eff, b"opacity", widget)
-    anim.setDuration(duration)
-    anim.setStartValue(0.0)
-    anim.setEndValue(1.0)
-    anim.setEasingCurve(QEasingCurve.OutBack)
-    anim.start(QPropertyAnimation.DeleteWhenStopped)
-    widget._pop_anim = anim
-    return anim
-
-
-def slide_fade_in(widget, duration=460, offset=8):
-    target = widget.pos()
-    widget.move(target.x(), target.y() + offset)
-    eff = _ensure_opacity_effect(widget)
-    eff.setOpacity(0.0)
-
-    fade = QPropertyAnimation(eff, b"opacity", widget)
-    fade.setDuration(duration)
-    fade.setStartValue(0.0)
-    fade.setEndValue(1.0)
-    fade.setEasingCurve(EASE_SMOOTH)
-
-    slide = QPropertyAnimation(widget, b"pos", widget)
-    slide.setDuration(duration)
-    slide.setStartValue(widget.pos())
-    slide.setEndValue(target)
-    slide.setEasingCurve(EASE_SMOOTH)
-
-    group = QParallelAnimationGroup(widget)
-    group.addAnimation(fade)
-    group.addAnimation(slide)
-    group.start(QParallelAnimationGroup.DeleteWhenStopped)
-    widget._anim_group = group
-    return group
-
-
-def smooth_scroll(scroll_area, target_value, duration=560):
+def smooth_scroll(scroll_area, target, duration=340):
     sb = scroll_area.verticalScrollBar()
-    if sb is None:
-        return None
-    anim = QPropertyAnimation(sb, b"value", scroll_area)
-    anim.setDuration(duration)
-    anim.setStartValue(sb.value())
-    anim.setEndValue(int(target_value))
-    anim.setEasingCurve(EASE_SMOOTH)
-    anim.start(QPropertyAnimation.DeleteWhenStopped)
-    scroll_area._scroll_anim = anim
-    return anim
+    a = QPropertyAnimation(sb, b"value", sb)
+    a.setDuration(duration)
+    a.setStartValue(sb.value())
+    a.setEndValue(target)
+    a.setEasingCurve(QEasingCurve.OutCubic)
+    a.start(QAbstractAnimation.DeleteWhenStopped)
+    return a
 
 
-def animate_height(widget, target_height, duration=360,
-                    collapse=None, on_finished=None):
-    start = widget.maximumHeight()
-    if start > 1000000 or start <= 0:
-        start = widget.height()
-    widget.setMaximumHeight(start)
-
-    anim = QPropertyAnimation(widget, b"maximumHeight", widget)
-    anim.setDuration(duration)
-    anim.setStartValue(start)
-    anim.setEndValue(target_height)
-    anim.setEasingCurve(EASE_INOUT if collapse else EASE_SMOOTH)
-    if on_finished:
-        anim.finished.connect(on_finished)
-    anim.start(QPropertyAnimation.DeleteWhenStopped)
-    widget._height_anim = anim
-    return anim
+# ============================================================
+# КАСКАД — список элементов по очереди
+# ============================================================
+def stagger_slide_in(widgets, distance=20, duration=280, gap=45):
+    """Плавно выезжает список виджетов по очереди."""
+    for i, w in enumerate(widgets):
+        _ensure_visible(w)
+        target = w.pos()
+        w.move(target + QPoint(-distance, 0))
+        animate_pos(w, target, duration, QEasingCurve.OutCubic, i * gap)
 
 
-def slide_in_x(widget, from_x=None, duration=620, easing=EASE_SMOOTH):
-    target = widget.pos()
-    start_x = from_x if from_x is not None else target.x() - 40
-    widget.move(start_x, target.y())
-    anim = QPropertyAnimation(widget, b"pos", widget)
-    anim.setDuration(duration)
-    anim.setStartValue(QPoint(start_x, target.y()))
-    anim.setEndValue(target)
-    anim.setEasingCurve(easing)
-    anim.start(QPropertyAnimation.DeleteWhenStopped)
-    widget._slide_x_anim = anim
-    return anim
+def stagger_pulse(widgets, gap=60, scale=1.04):
+    for i, w in enumerate(widgets):
+        QTimer.singleShot(i * gap, lambda x=w: pulse_size(x, scale, 260))
 
 
-def slide_in_y(widget, from_y=None, duration=620, easing=EASE_SMOOTH):
-    target = widget.pos()
-    start_y = from_y if from_y is not None else target.y() + 30
-    widget.move(target.x(), start_y)
-    anim = QPropertyAnimation(widget, b"pos", widget)
-    anim.setDuration(duration)
-    anim.setStartValue(QPoint(target.x(), start_y))
-    anim.setEndValue(target)
-    anim.setEasingCurve(easing)
-    anim.start(QPropertyAnimation.DeleteWhenStopped)
-    widget._slide_y_anim = anim
-    return anim
-
-
-def fade_and_slide_y(widget, duration=560, offset=28):
-    eff = _ensure_opacity_effect(widget)
-    eff.setOpacity(0.0)
-    target = widget.pos()
-    widget.move(target.x(), target.y() + offset)
-
-    fade = QPropertyAnimation(eff, b"opacity", widget)
-    fade.setDuration(duration)
-    fade.setStartValue(0.0)
-    fade.setEndValue(1.0)
-    fade.setEasingCurve(EASE_SMOOTH)
-
-    slide = QPropertyAnimation(widget, b"pos", widget)
-    slide.setDuration(duration)
-    slide.setStartValue(QPoint(target.x(), target.y() + offset))
-    slide.setEndValue(target)
-    slide.setEasingCurve(EASE_SMOOTH)
-
-    group = QParallelAnimationGroup(widget)
-    group.addAnimation(fade)
-    group.addAnimation(slide)
-    group.start(QParallelAnimationGroup.DeleteWhenStopped)
-    widget._anim_group = group
-    return group
-
-
-def fade_and_scale(widget, duration=480, offset=60, delta=14):
-    eff = _ensure_opacity_effect(widget)
-    eff.setOpacity(0.0)
-    target = widget.pos()
-    widget.move(target.x(), target.y() - delta)
-
-    fade = QPropertyAnimation(eff, b"opacity", widget)
-    fade.setDuration(duration)
-    fade.setStartValue(0.0)
-    fade.setEndValue(1.0)
-    fade.setEasingCurve(EASE_SMOOTH)
-
-    slide = QPropertyAnimation(widget, b"pos", widget)
-    slide.setDuration(duration)
-    slide.setStartValue(QPoint(target.x(), target.y() - delta))
-    slide.setEndValue(target)
-    slide.setEasingCurve(EASE_SMOOTH)
-
-    group = QParallelAnimationGroup(widget)
-    group.addAnimation(fade)
-    group.addAnimation(slide)
-    group.start(QParallelAnimationGroup.DeleteWhenStopped)
-    widget._fade_scale_anim = group
-    return group
-
-
-def pulse_scale(widget, duration=380):
-    target = widget.geometry()
-    anim = QPropertyAnimation(widget, b"geometry", widget)
-    anim.setDuration(duration)
-    anim.setStartValue(target)
-    mid = target.adjusted(-2, -1, 2, 1)
-    anim.setKeyValueAt(0.5, mid)
-    anim.setEndValue(target)
-    anim.setEasingCurve(QEasingCurve.OutQuad)
-    anim.start(QPropertyAnimation.DeleteWhenStopped)
-    widget._pulse_anim = anim
-    return anim
-
-
-def animate_max_width(widget, target, duration=440, easing=EASE_SMOOTH):
-    start = widget.maximumWidth()
-    if start > 1_000_000:
-        start = widget.width()
-    widget.setMaximumWidth(start)
-    anim = QPropertyAnimation(widget, b"maximumWidth", widget)
-    anim.setDuration(duration)
-    anim.setStartValue(start)
-    anim.setEndValue(target)
-    anim.setEasingCurve(easing)
-    anim.start(QPropertyAnimation.DeleteWhenStopped)
-    widget._mw_anim = anim
-    return anim
-
-
-def animate_splitter(splitter, target_index, from_size, to_size,
-                      duration=440, easing=EASE_SMOOTH, on_finished=None):
-    anim = QVariantAnimation(splitter)
-    anim.setDuration(duration)
-    anim.setStartValue(float(from_size))
-    anim.setEndValue(float(to_size))
-    anim.setEasingCurve(easing)
-    other_index = 1 - target_index
-    total = splitter.width()
-
-    def _on_value(v):
-        try:
-            v = int(v)
-            other = max(1, total - v)
-            sizes = [0, 0]
-            sizes[target_index] = v
-            sizes[other_index] = other
-            splitter.setSizes(sizes)
-        except Exception:
-            pass
-
-    anim.valueChanged.connect(_on_value)
-    if on_finished:
-        anim.finished.connect(on_finished)
-    anim.start(QVariantAnimation.DeleteWhenStopped)
-    splitter._anim = anim
-    return anim
-
-
-def slide_panel(widget, from_x_offset, duration=580, easing=EASE_SMOOTH):
-    target = widget.pos()
-    widget.move(target.x() + from_x_offset, target.y())
-    anim = QPropertyAnimation(widget, b"pos", widget)
-    anim.setDuration(duration)
-    anim.setStartValue(QPoint(target.x() + from_x_offset, target.y()))
-    anim.setEndValue(target)
-    anim.setEasingCurve(easing)
-    anim.start(QPropertyAnimation.DeleteWhenStopped)
-    widget._panel_anim = anim
-    return anim
-
-
+# ============================================================
+# PulsingDots — три мигающие точки
+# ============================================================
 class PulsingDots(QWidget):
-    """Три точки, пульсируют волной. Обновляются на ~20 fps."""
-
-    def __init__(self, parent=None, color="#a8a8a8"):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedSize(24, 12)
-        self.color = color
-
+        from .theme import C
         lay = QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(3)
-
-        self.dots = []
+        self._lbls = []
         for _ in range(3):
-            d = QLabel(".")
-            d.setFixedSize(6, 12)
-            d.setAlignment(Qt.AlignCenter)
-            d.setStyleSheet(
-                "color: " + color + "; font-size: 12px; "
-                "background: transparent;")
-            eff = QGraphicsOpacityEffect(d)
-            eff.setOpacity(0.3)
-            d.setGraphicsEffect(eff)
-            lay.addWidget(d)
-            self.dots.append(d)
+            l = QLabel("●")
+            l.setStyleSheet(f"color: {C['text_mute']}; font-size: 8px;")
+            lay.addWidget(l)
+            self._lbls.append(l)
 
         self._phase = 0
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
-        self._timer.start(480)  # очень мягкая пульсация
+        self._timer.setInterval(280)
+        self._timer.start()
 
     def _tick(self):
-        for i, d in enumerate(self.dots):
-            eff = d.graphicsEffect()
-            anim = QPropertyAnimation(eff, b"opacity", d)
-            anim.setDuration(680)
-            active = (self._phase % 3) == i
-            anim.setStartValue(eff.opacity())
-            anim.setEndValue(1.0 if active else 0.3)
-            anim.setEasingCurve(QEasingCurve.InOutSine)
-            anim.start(QPropertyAnimation.DeleteWhenStopped)
-            d._anim = anim
+        from .theme import C
+        for i, l in enumerate(self._lbls):
+            color = C["accent"] if i == self._phase % 3 else C["text_mute"]
+            l.setStyleSheet(f"color: {color}; font-size: 8px;")
         self._phase += 1
 
     def stop(self):
         self._timer.stop()
+
+
+def make_pulse_dots(parent=None):
+    return PulsingDots(parent)
