@@ -1,14 +1,11 @@
 """Markdown → набор виджетов Qt для чата."""
 import re
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QVBoxLayout,
-                                QWidget)
+from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-from .icons import make_icon
 from .theme import C
-
 
 UI = "Segoe UI"
 MONO = "Consolas"
@@ -188,10 +185,8 @@ class CodeBlock(QFrame):
             "padding: 2px 8px; border-radius: 6px;")
         cp.setProperty("role", "copy")
         def _copy(_):
-            from PySide6.QtWidgets import QApplication
             QApplication.clipboard().setText(code)
             cp.setText("Скопировано")
-            from PySide6.QtCore import QTimer
             QTimer.singleShot(1200, lambda: cp.setText("Копировать"))
         cp.mousePressEvent = _copy
         head.addWidget(cp)

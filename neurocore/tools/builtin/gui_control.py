@@ -1,10 +1,10 @@
 """Desktop control через pyautogui."""
 import os
+import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
 
-from ...token_manager import load_token
 from ..base import Tool
 
 DISABLED = os.getenv("NEUROCORE_DISABLE_GUI_CONTROL", "") == "1"
@@ -27,6 +27,7 @@ def _check():
 
 def _pg():
     import pyautogui
+
     pyautogui.FAILSAFE = True
     pyautogui.PAUSE = 0.3
     return pyautogui
@@ -69,9 +70,9 @@ class DesktopSeeTool(Tool):
                 tmp.unlink(missing_ok=True)
             except Exception:
                 pass
-            return (f"[disabled] vision не работает. Скриншот НЕ нужен — "
-                    f"для сайтов используй `browser_open(url)`, "
-                    f"для поиска — `deepseek_search`.")
+            return ("[disabled] vision не работает. Скриншот НЕ нужен — "
+                    "для сайтов используй `browser_open(url)`, "
+                    "для поиска — `deepseek_search`.")
         except Exception as e:
             return f"[error] {type(e).__name__}: {e}"
 
@@ -150,7 +151,7 @@ class DesktopDragTool(Tool):
             pg.moveTo(int(x1), int(y1))
             pg.dragTo(int(x2), int(y2), duration=0.5)
             _log(f"drag ({x1},{y1})→({x2},{y2})")
-            return f"[ok] перетащено"
+            return "[ok] перетащено"
         except Exception as e:
             return f"[error] {type(e).__name__}: {e}"
 
@@ -228,8 +229,9 @@ class DesktopWindowsTool(Tool):
     def run(self):
         _check()
         try:
-            import pygetwindow as gw
             wins = []
+            import pygetwindow as gw
+
             for w in gw.getAllWindows():
                 if w.title and w.width > 50 and w.height > 50:
                     wins.append(f"• {w.title[:70]!r}  "
@@ -248,6 +250,7 @@ class DesktopFocusWindowTool(Tool):
         _check()
         try:
             import pygetwindow as gw
+
             for w in gw.getAllWindows():
                 if title.lower() in (w.title or "").lower():
                     if w.isMinimized:
@@ -268,6 +271,7 @@ class DesktopActiveWindowTool(Tool):
         _check()
         try:
             import pygetwindow as gw
+
             w = gw.getActiveWindow()
             return f"{w.title!r} ({w.left},{w.top})" if w else "(нет)"
         except Exception as e:
@@ -327,7 +331,6 @@ class DesktopOpenUrlTool(Tool):
     def run(self, url):
         _check()
         try:
-            import subprocess
             if not url.startswith(("http://", "https://")):
                 url = "https://" + url
             subprocess.Popen(
@@ -350,6 +353,7 @@ class DesktopReadClipboardTool(Tool):
         _check()
         try:
             import pyperclip
+
             txt = pyperclip.paste() or ""
             _log(f"read_clipboard: {len(txt)} симв.")
             return txt[:3000] or "(буфер пуст)"
@@ -366,8 +370,9 @@ class DesktopCopyAllTool(Tool):
     def run(self):
         _check()
         try:
-            import pyperclip
             pg = _pg()
+            import pyperclip
+
             pyperclip.copy("")  # очистка
             time.sleep(0.1)
             pg.hotkey("ctrl", "a")

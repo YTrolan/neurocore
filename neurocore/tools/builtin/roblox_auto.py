@@ -1,9 +1,11 @@
 """Инструмент для автоматической игры в Roblox."""
+import json
+import re
 import time
-import pyautogui
-import pydirectinput
 from pathlib import Path
+
 from ..base import Tool
+
 
 class RobloxAutoPlayTool(Tool):
     name = "roblox_auto_play"
@@ -20,10 +22,13 @@ class RobloxAutoPlayTool(Tool):
 
     def run(self, prompt: str, duration_seconds: int = 60, action_delay: float = 2.0) -> str:
         try:
-            from ...token_manager import load_token
             import opendeep
+            import pyautogui
+            import pydirectinput
             from opendeep import GenerativeModel
-        except ImportError as e:
+
+            from ...token_manager import load_token
+        except (ImportError, OSError, KeyError) as e:
             return f"[error] Не удалось импортировать модули: {e}"
 
         token = load_token()
@@ -86,7 +91,6 @@ class RobloxAutoPlayTool(Tool):
                 return f"[error] Ошибка vision-модели: {e}"
 
             # 3. Парсим и выполняем действие
-            import json
             try:
                 # Ищем JSON в ответе
                 json_match = re.search(r'\{.*\}', response_text, re.DOTALL)

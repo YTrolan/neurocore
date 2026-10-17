@@ -6,15 +6,27 @@ import os
 import platform
 import random
 import shutil as _sh
-import subprocess
 import time
 import urllib.request
 import uuid as _uuid
+import webbrowser
 import zipfile
 from datetime import datetime
 from pathlib import Path
 
+from PySide6.QtWidgets import QApplication
+
 from ..base import Tool
+
+try:
+    import psutil
+except ImportError:  # psutil необязателен
+    psutil = None
+
+try:
+    from win10toast import ToastNotifier
+except ImportError:  # win10toast необязателен
+    ToastNotifier = None
 
 
 # ============================================================
@@ -185,14 +197,11 @@ class SystemInfoTool(Tool):
                 f"Python:   {platform.python_version()}",
                 f"CWD:      {os.getcwd()}",
             ]
-            try:
-                import psutil
+            if psutil is not None:
                 lines.append(f"CPU:      {psutil.cpu_percent(interval=0.1)}%")
                 vm = psutil.virtual_memory()
                 lines.append(f"RAM:      {vm.used // 1024 // 1024} / "
                              f"{vm.total // 1024 // 1024} MB")
-            except ImportError:
-                pass
             return "\n".join(lines)
         except Exception as e:
             return f"[error] {e}"
@@ -204,8 +213,9 @@ class ProcessListTool(Tool):
     parameters = {"filter": "фильтр по имени (опционально)"}
 
     def run(self, filter: str = "") -> str:
+        if psutil is None:
+            return "[error] нужен psutil: pip install psutil"
         try:
-            import psutil
             rows = []
             for p in psutil.process_iter(["pid", "name", "cpu_percent"]):
                 try:
@@ -216,8 +226,6 @@ class ProcessListTool(Tool):
                 except Exception:
                     continue
             return "\n".join(rows[:200]) or "(нет)"
-        except ImportError:
-            return "[error] нужен psutil: pip install psutil"
         except Exception as e:
             return f"[error] {e}"
 
@@ -248,24 +256,22 @@ class DiskUsageTool(Tool):
     parameters = {}
 
     def run(self) -> str:
-        try:
-            import psutil
-            out = []
-            for part in psutil.disk_partitions():
-                try:
-                    u = psutil.disk_usage(part.mountpoint)
-                    out.append(
-                        f"{part.device:15} {u.free // 1024**3} GB свободно "
-                        f"из {u.total // 1024**3} GB")
-                except Exception:
-                    continue
-            return "\n".join(out)
-        except ImportError:
-            import shutil
-            t, u, f = shutil.disk_usage(".")
-            return f"свободно: {f // 1024**3} GB из {t // 1024**3} GB"
-        except Exception as e:
-            return f"[error] {e}"
+        if psutil is not None:
+            try:
+                out = []
+                for part in psutil.disk_partitions():
+                    try:
+                        u = psutil.disk_usage(part.mountpoint)
+                        out.append(
+                            f"{part.device:15} {u.free // 1024**3} GB свободно "
+                            f"из {u.total // 1024**3} GB")
+                    except Exception:
+                        continue
+                return "\n".join(out)
+            except Exception as e:
+                return f"[error] {e}"
+        t, u, f = _sh.disk_usage(".")
+        return f"свободно: {f // 1024**3} GB из {t // 1024**3} GB"
 
 
 # ============================================================
@@ -381,7 +387,6 @@ class OpenUrlTool(Tool):
 
     def run(self, url: str) -> str:
         try:
-            import webbrowser
             webbrowser.open(url)
             return f"[ok] открываю {url}"
         except Exception as e:
@@ -435,12 +440,11 @@ class NotifyTool(Tool):
     parameters = {"title": "заголовок", "text": "текст"}
 
     def run(self, title: str, text: str) -> str:
+        if ToastNotifier is None:
+            return "[error] нужен win10toast: pip install win10toast"
         try:
-            from win10toast import ToastNotifier
             ToastNotifier().show_toast(title, text, duration=5)
             return "[ok] уведомление показано"
-        except ImportError:
-            return "[error] нужен win10toast: pip install win10toast"
         except Exception as e:
             return f"[error] {e}"
 
@@ -452,7 +456,6 @@ class ClipboardGetTool(Tool):
 
     def run(self) -> str:
         try:
-            from PySide6.QtWidgets import QApplication
             return QApplication.clipboard().text() or "(пусто)"
         except Exception as e:
             return f"[error] {e}"
@@ -465,7 +468,6 @@ class ClipboardSetTool(Tool):
 
     def run(self, text: str) -> str:
         try:
-            from PySide6.QtWidgets import QApplication
             QApplication.clipboard().setText(text)
             return f"[ok] скопировано {len(text)} символов"
         except Exception as e:

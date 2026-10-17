@@ -1,8 +1,8 @@
 """Собирает NeuroCore.exe со ВСЕМИ библиотеками внутри."""
-from pathlib import Path
-import subprocess
 import shutil
+import subprocess
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 DIST = ROOT / "dist"
@@ -60,6 +60,7 @@ print("[ok] процессы убиты")
 # 3. Пути к wasmtime
 # ============================================================
 import wasmtime
+
 wt_dll = Path(wasmtime.__file__).parent / "win32-x86_64" / "_wasmtime.dll"
 print(f"[ok] wasmtime: {wt_dll.name}")
 

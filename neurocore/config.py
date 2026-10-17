@@ -1,8 +1,9 @@
 """NeuroCore config: providers, models, settings."""
 import json
-from dataclasses import dataclass, asdict, field
+import uuid
+from copy import deepcopy
+from dataclasses import dataclass, field
 from pathlib import Path
-
 
 DIR = Path.home() / ".neurocore"
 DIR.mkdir(parents=True, exist_ok=True)
@@ -74,22 +75,25 @@ DEFAULTS = {
 
 def _deep_merge(base, patch):
     if isinstance(base, dict) and isinstance(patch, dict):
-        out = dict(base)
+        out = deepcopy(base)
         for k, v in patch.items():
             out[k] = _deep_merge(base.get(k), v) if k in base else v
         return out
-    return patch
+    return deepcopy(patch)
 
 
 def load() -> dict:
     if FILE.exists():
         try:
             user = json.loads(FILE.read_text(encoding="utf-8"))
+            if not isinstance(user, dict):
+                return deepcopy(DEFAULTS)
             return _deep_merge(DEFAULTS, user)
-        except Exception:
-            return dict(DEFAULTS)
-    save(dict(DEFAULTS))
-    return dict(DEFAULTS)
+        except (OSError, ValueError):
+            return deepcopy(DEFAULTS)
+    cfg = deepcopy(DEFAULTS)
+    save(cfg)
+    return cfg
 
 
 def save(cfg: dict):
@@ -112,7 +116,6 @@ def active_provider(cfg: dict) -> dict:
 
 
 def add_provider(cfg, name, kind, base_url, api_key, models):
-    import uuid
     pid = "p_" + uuid.uuid4().hex[:6]
     cfg["providers"].append({
         "id": pid, "name": name, "kind": kind,

@@ -1,10 +1,9 @@
 """Индикатор действий агента — внутри чата."""
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel
 
 from .icons import make_icon
 from .theme import C
-
 
 UI = "Segoe UI"
 

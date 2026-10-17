@@ -1,11 +1,18 @@
 """Стилизованные диалоги — overlay внутри главного окна."""
-from PySide6.QtCore import Qt, QEvent, QEventLoop
-from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel,
-                                QLineEdit, QPushButton, QVBoxLayout, QWidget)
+from PySide6.QtCore import QEvent, QEventLoop, Qt
+from PySide6.QtWidgets import (
+    QDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from .icons import make_icon
-from .theme import C, QSS
-
+from .theme import QSS, C
 
 UI = "Segoe UI"
 

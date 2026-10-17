@@ -1,8 +1,8 @@
-import re
-from shutil import which as shutil_which
 import os
 import platform
+import re
 import subprocess
+from shutil import which as shutil_which
 
 from ..base import Tool
 

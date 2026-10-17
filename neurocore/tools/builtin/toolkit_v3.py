@@ -1,43 +1,76 @@
 """toolkit_v3 — 100 инструментов для NeuroCore."""
+import ast
 import base64
+import calendar
 import configparser
 import csv
+import ctypes
 import hashlib
 import hmac
 import html
-import http.client
-import io
 import ipaddress
 import json
 import math
-import os
 import pickle
 import platform
-import plistlib
 import random
 import re
 import secrets
-import shutil
 import socket
 import sqlite3
 import ssl
+import statistics
 import string
 import subprocess
 import sys
-import tempfile
-import textwrap
 import time
+import unicodedata
 import urllib.parse
 import urllib.request
 import uuid as _uuid
 import xml.etree.ElementTree as ET
-import zipfile
+import zoneinfo
 from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
 
+from ... import config as _cfg
 from ..base import Tool
+
+# --- опциональные зависимости (None, если не установлены) ---
+try:
+    import winreg
+except ImportError:  # не-Windows
+    winreg = None
+
+try:
+    import tomllib as _toml
+except ImportError:
+    try:
+        import tomli as _toml
+    except ImportError:
+        _toml = None
+
+try:
+    import tomli_w
+except ImportError:
+    tomli_w = None
+
+try:
+    import xmltodict
+except ImportError:
+    xmltodict = None
+
+try:
+    import markdown
+except ImportError:
+    markdown = None
+
+try:
+    from croniter import croniter
+except ImportError:
+    croniter = None
 
 
 def _resolve_path(path):
@@ -54,7 +87,6 @@ def _resolve_path(path):
         return dl
     # из настроек output_dir
     try:
-        from ... import config as _cfg
         d = _cfg.load().get("output_dir", "")
         if d and (Path(d) / p).exists():
             return Path(d) / p
@@ -83,9 +115,7 @@ class RegReadTool(Tool):
     parameters = {"key": "путь ключа", "name": "имя значения"}
 
     def run(self, key, name=""):
-        try:
-            import winreg
-        except ImportError:
+        if winreg is None:
             return "[error] только Windows"
         try:
             # HKEY_LOCAL_MACHINE\... парсим
@@ -123,9 +153,7 @@ class RegWriteTool(Tool):
                   "type": "REG_SZ|REG_DWORD"}
 
     def run(self, key, name, value, type="REG_SZ"):
-        try:
-            import winreg
-        except ImportError:
+        if winreg is None:
             return "[error] только Windows"
         try:
             parts = key.split("\\", 1)
@@ -254,7 +282,6 @@ class AdminCheckTool(Tool):
 
     def run(self):
         try:
-            import ctypes
             return "администратор" if ctypes.windll.shell32.IsUserAnAdmin() else "обычный пользователь"
         except Exception as e:
             return f"[error] {type(e).__name__}: {e}"
@@ -414,7 +441,6 @@ class PyDocTool(Tool):
 
     def run(self, path):
         try:
-            import ast
             tree = ast.parse(Path(path).read_text(encoding="utf-8"))
             out = []
             for node in ast.walk(tree):
@@ -435,7 +461,6 @@ class PyTreeTool(Tool):
 
     def run(self, path):
         try:
-            import ast
             tree = ast.parse(Path(path).read_text(encoding="utf-8"))
             return ast.dump(tree, indent=2)[:4000]
         except Exception as e:
@@ -539,13 +564,11 @@ class TomlReadTool(Tool):
     parameters = {"path": "файл"}
 
     def run(self, path):
+        if _toml is None:
+            return "[error] нужен tomllib (Python 3.11+) или tomli"
         try:
-            try:
-                import tomllib as _t
-            except ImportError:
-                import tomli as _t
             with open(path, "rb") as f:
-                data = _t.load(f)
+                data = _toml.load(f)
             return json.dumps(data, ensure_ascii=False, indent=2)[:5000]
         except Exception as e:
             return f"[error] {type(e).__name__}: {e}"
@@ -557,9 +580,7 @@ class TomlWriteTool(Tool):
     parameters = {"path": "файл", "json": "JSON-строка"}
 
     def run(self, path, json):
-        try:
-            import tomli_w
-        except ImportError:
+        if tomli_w is None:
             return "[error] pip install tomli-w"
         try:
             d = __import__("json").loads(json)
@@ -634,9 +655,7 @@ class XmlToJsonTool(Tool):
     parameters = {"path": "XML", "dst": "куда"}
 
     def run(self, path, dst):
-        try:
-            import xmltodict
-        except ImportError:
+        if xmltodict is None:
             return "[error] pip install xmltodict"
         try:
             d = xmltodict.parse(Path(path).read_text(encoding="utf-8"))
@@ -705,13 +724,11 @@ class CsvToSqliteTool(Tool):
         csv_path = str(_resolve_path(csv_path))
         db = str(_resolve_path(db))
         try:
-            import csv as _csv_mod
-            import sqlite3 as sq
             with open(csv_path, "r", encoding="utf-8", newline="") as f:
-                reader = _csv_mod.reader(f)
+                reader = csv.reader(f)
                 headers = next(reader)
                 rows = list(reader)
-            con = sq.connect(db)
+            con = sqlite3.connect(db)
             cur = con.cursor()
             cols = ", ".join(f'"{h}" TEXT' for h in headers)
             cur.execute(f'DROP TABLE IF EXISTS "{table}"')
@@ -752,8 +769,9 @@ class MarkdownToHtmlTool(Tool):
     parameters = {"path": "MD", "dst": "HTML"}
 
     def run(self, path, dst):
+        if markdown is None:
+            return "[error] pip install markdown"
         try:
-            import markdown
             src_path = _resolve_path(path)
             t = markdown.markdown(src_path.read_text(encoding="utf-8"),
                                    extensions=["extra", "codehilite"])
@@ -761,8 +779,6 @@ class MarkdownToHtmlTool(Tool):
             out_path.parent.mkdir(parents=True, exist_ok=True)
             out_path.write_text(t, encoding="utf-8")
             return f"[ok] {out_path}"
-        except ImportError:
-            return "[error] pip install markdown"
         except Exception as e:
             return f"[error] {type(e).__name__}: {e}"
 
@@ -810,15 +826,14 @@ class HttpPostTool(Tool):
 
     def run(self, url, json, headers="{}"):
         try:
-            import urllib.request as ur
             h = {"Content-Type": "application/json"}
             try:
                 h.update(__import__("json").loads(headers))
             except Exception:
                 pass
-            req = ur.Request(url, data=json.encode("utf-8"),
-                              headers=h, method="POST")
-            with ur.urlopen(req, timeout=20) as r:
+            req = urllib.request.Request(url, data=json.encode("utf-8"),
+                                          headers=h, method="POST")
+            with urllib.request.urlopen(req, timeout=20) as r:
                 return f"[{r.status}]\n{r.read().decode('utf-8', errors='ignore')[:4000]}"
         except Exception as e:
             return f"[error] {type(e).__name__}: {e}"
@@ -831,10 +846,9 @@ class HttpHeadTool(Tool):
 
     def run(self, url):
         try:
-            import urllib.request as ur
-            req = ur.Request(url, method="HEAD",
-                              headers={"User-Agent": "Mozilla/5.0"})
-            with ur.urlopen(req, timeout=15) as r:
+            req = urllib.request.Request(url, method="HEAD",
+                                          headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=15) as r:
                 return f"[{r.status}]\n" + "\n".join(f"{k}: {v}" for k, v in r.headers.items())
         except Exception as e:
             return f"[error] {type(e).__name__}: {e}"
@@ -847,8 +861,7 @@ class DnsLookupTool(Tool):
 
     def run(self, host):
         try:
-            import socket as s
-            infos = s.getaddrinfo(host, None)
+            infos = socket.getaddrinfo(host, None)
             seen = set()
             out = []
             for f, _, _, _, addr in infos:
@@ -1000,7 +1013,6 @@ class SlugifyTool(Tool):
 
     def run(self, text):
         try:
-            import unicodedata
             t = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
             t = re.sub(r"[^\w\s-]", "", t).strip().lower()
             return re.sub(r"[-\s]+", "-", t)
@@ -1370,7 +1382,6 @@ class MathStatsTool(Tool):
             nums = [float(x) for x in re.split(r"[\s,]+", numbers) if x]
             if not nums:
                 return "[error] нет чисел"
-            import statistics
             return (f"count: {len(nums)}\n"
                     f"sum: {sum(nums)}\n"
                     f"min: {min(nums)}\n"
@@ -1585,9 +1596,7 @@ class CronNextTool(Tool):
     parameters = {"expr": "5-польное cron", "n": "сколько раз (5)"}
 
     def run(self, expr, n=5):
-        try:
-            from croniter import croniter
-        except ImportError:
+        if croniter is None:
             return "[error] pip install croniter"
         try:
             it = croniter(expr, datetime.now())
@@ -1603,7 +1612,6 @@ class TimezoneInfoTool(Tool):
 
     def run(self, zone=""):
         try:
-            import zoneinfo
             z = zoneinfo.ZoneInfo(zone or "UTC")
             now = datetime.now(z)
             return (f"зона: {z}\n"
@@ -1652,7 +1660,6 @@ class CalendarMonthTool(Tool):
 
     def run(self, year, month):
         try:
-            import calendar
             return calendar.month(int(year), int(month))
         except Exception as e:
             return f"[error] {type(e).__name__}: {e}"

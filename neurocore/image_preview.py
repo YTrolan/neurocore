@@ -1,14 +1,15 @@
 """Превью картинок: в input и в чате."""
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton,
-                                QVBoxLayout, QWidget)
+from PySide6.QtWidgets import QFrame, QLabel, QPushButton, QVBoxLayout
 
-from .theme import C
 from .icons import make_icon
-
+from .theme import C
 
 MAX_W = 340
 MAX_H = 240
@@ -66,7 +67,6 @@ class AttachThumb(QFrame):
 
         # клик по миниатюре — открыть
         def _open(_):
-            import sys, subprocess, os
             try:
                 if sys.platform == "win32":
                     os.startfile(path)
@@ -116,7 +116,6 @@ class ImagePreview(QFrame):
         lbl.setToolTip("Клик — открыть в системном просмотрщике")
 
         def _open(_):
-            import sys, subprocess, os
             try:
                 if sys.platform == "win32":
                     os.startfile(path)
@@ -132,8 +131,6 @@ class ImagePreview(QFrame):
 
 
 def extract_image_paths(text: str) -> list[str]:
-    import re
-    from pathlib import Path as P
     found = []
     image_exts = (".png", ".jpg", ".jpeg", ".gif", ".webp",
                    ".bmp", ".tif", ".tiff", ".svg", ".ico")
@@ -142,7 +139,7 @@ def extract_image_paths(text: str) -> list[str]:
         if not s:
             continue
         try:
-            p = P(s)
+            p = Path(s)
             if p.exists() and p.suffix.lower() in image_exts:
                 found.append(str(p))
         except Exception:

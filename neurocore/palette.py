@@ -1,8 +1,16 @@
 """Command palette — modal overlay."""
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence, QShortcut
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QLineEdit,
-                                QPushButton, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QFrame,
+    QGraphicsOpacityEffect,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from .icons import make_icon
 from .theme import C
@@ -93,7 +101,6 @@ class CommandPalette(QWidget):
         if self.parent():
             self.setGeometry(self.parent().rect())
         # сбросить возможные эффекты прозрачности
-        from PySide6.QtWidgets import QGraphicsOpacityEffect
         for w in (self, getattr(self, "popup", None)):
             if w is None:
                 continue

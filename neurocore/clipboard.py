@@ -2,9 +2,7 @@
 import hashlib
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication, QImage, QPixmap
-
+from PySide6.QtGui import QGuiApplication, QImage
 
 TEMP_DIR = Path.home() / ".neurocore" / "paste"
 TEMP_DIR.mkdir(parents=True, exist_ok=True)

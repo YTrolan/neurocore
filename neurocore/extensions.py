@@ -6,7 +6,6 @@ import traceback
 from dataclasses import dataclass
 from pathlib import Path
 
-
 PLUGIN_DIR = Path.home() / ".neurocore" / "plugins"
 PRESET_DIR = Path.home() / ".neurocore" / "presets"
 PLUGIN_DIR.mkdir(parents=True, exist_ok=True)

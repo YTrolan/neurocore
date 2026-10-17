@@ -1,14 +1,17 @@
-try:
-    import keyring
-    _KEYRING_OK = True
-except ImportError:
-    _KEYRING_OK = False
 """Менеджер токена DeepSeek — хранит в ~/.neurocore/token.txt."""
 import json
 import os
 import shutil
 import time
 from pathlib import Path
+
+from . import config as cfgmod
+
+try:
+    import keyring
+    _KEYRING_OK = True
+except ImportError:
+    _KEYRING_OK = False
 
 
 # --- keyring-обёртки ---
@@ -249,7 +252,6 @@ def fetch_token_via_browser(timeout: int = 60,
     """
     if not browser_kind:
         try:
-            from . import config as cfgmod
             browser_kind = cfgmod.load().get("browser_kind", "auto") or "auto"
         except Exception:
             browser_kind = "auto"
@@ -276,9 +278,9 @@ def fetch_token_via_browser(timeout: int = 60,
 
     # Копируем профиль
     tmp_dir = TOKEN_DIR / f"browser_copy_{kind}"
-    print(f"[token] копирую профиль...", flush=True)
+    print("[token] копирую профиль...", flush=True)
     _copy_profile(info["user_data"], info["profile_sub"], tmp_dir)
-    print(f"[token] профиль готов", flush=True)
+    print("[token] профиль готов", flush=True)
 
     pw = sync_playwright().start()
     launch = {
@@ -339,7 +341,7 @@ def fetch_token_via_browser(timeout: int = 60,
             print(f"[token] получен, длина {len(token)}", flush=True)
             return token
         return ""
-    except Exception as e:
+    except Exception:
         try:
             pw.stop()
         except Exception:

@@ -1,9 +1,21 @@
 """Full-screen plugins page."""
-from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton,
-                                QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
+import shutil
+from pathlib import Path
 
-from .extensions import OFFICIAL_PLUGINS, load_plugin_states, save_plugin_states
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
+
+from .extensions import OFFICIAL_PLUGINS, PLUGIN_DIR, load_plugin_states, save_plugin_states
 from .icons import make_icon
 from .theme import C
 
@@ -228,13 +240,10 @@ class PluginsPage(QWidget):
         self._populate()
 
     def _add_plugin(self):
-        from PySide6.QtWidgets import QMessageBox, QFileDialog
         path, _ = QFileDialog.getOpenFileName(
             self, "Выбери .py файл плагина", "", "Python (*.py)")
         if not path:
             return
-        from .extensions import PLUGIN_DIR
-        import shutil
         try:
             dst = PLUGIN_DIR / Path(path).name
             shutil.copy(path, dst)

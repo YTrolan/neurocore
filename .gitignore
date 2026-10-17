@@ -6,6 +6,7 @@ __pycache__/
 venv/
 env/
 .pytest_cache/
+.ruff_cache/
 
 # Мусор разработки
 *.bak

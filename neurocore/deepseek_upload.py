@@ -4,7 +4,6 @@ from pathlib import Path
 
 import requests
 
-
 API_BASE = "https://chat.deepseek.com/api/v0"
 
 

@@ -2,9 +2,8 @@
 import json
 import time
 import uuid
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-
 
 DIR = Path.home() / ".neurocore" / "sessions"
 DIR.mkdir(parents=True, exist_ok=True)
@@ -73,7 +72,7 @@ class Session:
             title=self.title + " (copy)",
             created=now, updated=now,
             messages=[dict(m) for m in self.messages],
-            model=self.model, preset=self.preset,
+            model=self.model, preset=self.preset, workspace=self.workspace,
         )
         copy.save()
         return copy

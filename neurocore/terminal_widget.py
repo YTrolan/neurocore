@@ -1,15 +1,10 @@
 """Настоящий PowerShell в виджете Qt через PTY."""
-import os
-import sys
 import threading
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QFont, QKeyEvent
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QPlainTextEdit, QVBoxLayout, QWidget
-
-from .theme import C
-
 
 try:
     import pyte
@@ -132,7 +127,6 @@ class TerminalWidget(QWidget):
         except Exception:
             pass
         # перезапустить
-        from PySide6.QtCore import QTimer
         QTimer.singleShot(200, self._start)
 
     def _start(self):

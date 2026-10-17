@@ -6,13 +6,11 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 
 from .agent.loop import Agent
-from .core.opendeep_provider import OpenDeepProvider
 from .tools.builtin.files import ListDirTool, ReadFileTool, WriteFileTool
 from .tools.builtin.image import GenerateImageTool
 from .tools.builtin.shell import ShellTool
 from .tools.builtin.web import WebFetchTool, WebSearchTool
 from .tools.registry import ToolRegistry
-
 
 app = typer.Typer(add_completion=False)
 console = Console()
@@ -46,6 +44,8 @@ def _build_agent(model: str, thinking: bool, cwd: str) -> Agent:
     if not token:
         console.print("[red]Установи переменную окружения DEEPSEEK_TOKEN[/red]")
         raise typer.Exit(1)
+
+    from .core.opendeep_provider import OpenDeepProvider
 
     provider = OpenDeepProvider(token=token, model=model, thinking=thinking)
 

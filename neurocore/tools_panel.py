@@ -1,23 +1,29 @@
 """Right-side tools panel: files / terminal / browser."""
-import os
 import subprocess
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QSize, QTimer, Signal
-from PySide6.QtGui import QFont, QKeySequence, QShortcut, QDesktopServices
-from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog,
-                                QFrame, QHBoxLayout, QLabel, QLineEdit,
-                                QListWidget, QListWidgetItem, QPushButton,
-                                QSizePolicy, QSplitter, QStackedWidget,
-                                QTextEdit, QTreeWidget, QTreeWidgetItem,
-                                QVBoxLayout, QWidget)
+from PySide6.QtCore import QPoint, QSize, Qt, Signal
+from PySide6.QtGui import QDesktopServices, QFont
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMenu,
+    QPushButton,
+    QStackedWidget,
+    QTextEdit,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 from .icons import make_icon
-from .theme import C
 from .plugins_page import PluginsPage
-from .terminal_widget import TerminalWidget
-
+from .theme import C
 
 try:
     from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -179,9 +185,6 @@ class StartScreen(QWidget):
     ]
 
     def _show_shell_selector_menu(self):
-        from PySide6.QtCore import QPoint
-        from PySide6.QtWidgets import QMenu
-
         menu = QMenu(self)
         for key, label in self.SHELL_OPTIONS:
             act = menu.addAction(label)
@@ -627,14 +630,8 @@ class ToolsPanel(QWidget):
 
         # подключаем refresh-кнопку под текущий инструмент
         try:
-            try:
-                try:
-                    self.refresh_btn.clicked.disconnect()
-                except (RuntimeError, TypeError):
-                    pass
-            except (RuntimeError, TypeError):
-                pass
-        except Exception:
+            self.refresh_btn.clicked.disconnect()
+        except (RuntimeError, TypeError):
             pass
         if idx == 1:
             self.refresh_btn.show()

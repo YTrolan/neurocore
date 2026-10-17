@@ -1,7 +1,6 @@
 """Селектор модели: top-level прозрачное окно + вложенный QFrame."""
 from PySide6.QtCore import QPoint, Qt, Signal
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QVBoxLayout,
-                                QWidget, QApplication)
+from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from .icons import make_icon
 from .theme import C

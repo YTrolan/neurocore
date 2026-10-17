@@ -1,8 +1,6 @@
 """Trajectory view: timeline of tool calls."""
-from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QScrollArea,
-                                QVBoxLayout, QWidget)
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from .icons import make_icon
 from .theme import C
@@ -122,7 +120,6 @@ class TrajectoryView(QWidget):
         self.lay.insertWidget(self.lay.count() - 1, card)
         # запоминаем "открытый" степ, чтобы дозаполнить результатом
         self._open = card
-        from PySide6.QtCore import QTimer
         QTimer.singleShot(30, self._scroll_end)
 
     def set_result(self, result):

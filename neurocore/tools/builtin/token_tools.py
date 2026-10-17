@@ -1,9 +1,6 @@
 """Управление токеном через UI."""
-import threading
-
+from ...token_manager import clear_token, load_token
 from ..base import Tool
-from ...token_manager import (load_token, save_token,
-                              clear_token, fetch_token_via_browser)
 
 
 class TokenStatusTool(Tool):

@@ -4,7 +4,8 @@ import time
 
 import requests
 
-from .deepseek_upload import API_BASE as BASE, _client_headers, _solve_pow, upload_file
+from .deepseek_upload import API_BASE as BASE
+from .deepseek_upload import _client_headers, _solve_pow, upload_file
 
 
 class DeepSeekClient:

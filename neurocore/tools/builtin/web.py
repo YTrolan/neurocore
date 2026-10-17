@@ -7,6 +7,7 @@ from urllib.parse import quote_plus
 import requests
 
 from ..base import Tool
+
 requests.packages.urllib3.disable_warnings()
 
 
@@ -27,7 +28,7 @@ def _strip_html(html: str) -> str:
     html = re.sub(r"<!--.*?-->", " ", html, flags=re.DOTALL)
     text = re.sub(r"<[^>]+>", " ", html)
     for k, v in {"&nbsp;": " ", "&amp;": "&", "&lt;": "<",
-                  "&gt;": ">", "&quot;": '"', "&#39;": "'"}.items():
+                 ">": ">", "&quot;": '"', "&#39;": "'"}.items():
         text = text.replace(k, v)
     return re.sub(r"\s+", " ", text).strip()
 
@@ -52,6 +53,7 @@ class WebFetchTool(Tool):
             "User-Agent": UA_WIKI if "wikipedia.org" in url else UA_BROWSER,
             "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
         }
+        last = f"[error] не загрузить {url}"
         for verify in (True, False):
             try:
                 r = requests.get(url, headers=headers, timeout=self.timeout,
@@ -70,7 +72,7 @@ class WebFetchTool(Tool):
             except Exception as e:
                 last = f"[error] {type(e).__name__}: {e}"
                 continue
-        return last if "last" in dir() else f"[error] не загрузить {url}"
+        return last
 
 
 # ============================================================
@@ -87,7 +89,6 @@ class WebSearchTool(Tool):
         self.max_results = max_results
 
     def run(self, query: str) -> str:
-        # параллельно: Bing + Wikipedia, кто первый — того и результат
         ex = concurrent.futures.ThreadPoolExecutor(max_workers=2)
         try:
             futures = [
@@ -106,10 +107,8 @@ class WebSearchTool(Tool):
             except concurrent.futures.TimeoutError:
                 pass
         finally:
-            # не ждём завершения всех потоков
             ex.shutdown(wait=False)
 
-        # fallback
         q = quote_plus(query)
         return (
             "(не удалось получить результаты автоматически)\n"
@@ -149,7 +148,6 @@ class WebSearchTool(Tool):
     # ---------- Wikipedia (fallback, 1 запрос REST) ----------
     def _wikipedia(self, query: str) -> str:
         lang = "ru" if re.search(r"[а-яА-Я]", query) else "en"
-        # прямое обращение по названию статьи
         t = urllib.parse.quote(query.replace(" ", "_"))
         try:
             r = requests.get(
@@ -169,7 +167,6 @@ class WebSearchTool(Tool):
         except Exception:
             pass
 
-        # fallback — opensearch, но БЕЗ дополнительных summary-запросов
         try:
             r = requests.get(
                 f"https://{lang}.wikipedia.org/w/api.php",

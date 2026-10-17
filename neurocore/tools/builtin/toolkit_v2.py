@@ -1,5 +1,6 @@
 """toolkit_v2 — дополнительные инструменты."""
 import csv
+import difflib
 import hashlib
 import json
 import re
@@ -13,6 +14,39 @@ from pathlib import Path
 
 from ..base import Tool
 
+# --- опциональные зависимости (падают в None, если не установлены) ---
+try:
+    from docx import Document
+except ImportError:
+    Document = None
+
+try:
+    from pypdf import PdfReader
+except ImportError:
+    try:
+        from PyPDF2 import PdfReader
+    except ImportError:
+        PdfReader = None
+
+try:
+    from openpyxl import load_workbook
+except ImportError:
+    load_workbook = None
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 def _size_h(n):
     for u in ("B", "KB", "MB", "GB"):
@@ -28,9 +62,7 @@ class ReadDocxTool(Tool):
     parameters = {"path": "путь"}
 
     def run(self, path):
-        try:
-            from docx import Document
-        except ImportError:
+        if Document is None:
             return "[error] pip install python-docx"
         try:
             d = Document(path)
@@ -49,13 +81,8 @@ class ReadPdfTool(Tool):
     parameters = {"path": "PDF", "max_pages": "макс. страниц"}
 
     def run(self, path, max_pages=20):
-        try:
-            from pypdf import PdfReader
-        except ImportError:
-            try:
-                from PyPDF2 import PdfReader
-            except ImportError:
-                return "[error] pip install pypdf"
+        if PdfReader is None:
+            return "[error] pip install pypdf"
         try:
             r = PdfReader(path)
             out = []
@@ -72,9 +99,7 @@ class ReadXlsxTool(Tool):
     parameters = {"path": "файл"}
 
     def run(self, path):
-        try:
-            from openpyxl import load_workbook
-        except ImportError:
+        if load_workbook is None:
             return "[error] pip install openpyxl"
         try:
             wb = load_workbook(path, data_only=True)
@@ -231,7 +256,6 @@ class TextDiffTool(Tool):
 
     def run(self, a, b):
         try:
-            import difflib
             ta = Path(a).read_text(encoding="utf-8", errors="ignore").splitlines()
             tb = Path(b).read_text(encoding="utf-8", errors="ignore").splitlines()
             d = difflib.unified_diff(ta, tb, lineterm="", fromfile=a, tofile=b)
@@ -302,9 +326,7 @@ class YamlToJsonTool(Tool):
     parameters = {"path": "YAML", "dst": "куда"}
 
     def run(self, path, dst):
-        try:
-            import yaml
-        except ImportError:
+        if yaml is None:
             return "[error] pip install pyyaml"
         try:
             d = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
@@ -321,13 +343,12 @@ class ImageInfoTool(Tool):
     parameters = {"path": "файл"}
 
     def run(self, path):
+        if Image is None:
+            return "[error] pip install pillow"
         try:
-            from PIL import Image
             im = Image.open(path)
             return (f"format: {im.format}\nsize: {im.width}x{im.height}\n"
                     f"mode: {im.mode}\nfile: {_size_h(Path(path).stat().st_size)}")
-        except ImportError:
-            return "[error] pip install pillow"
         except Exception as e:
             return f"[error] {type(e).__name__}: {e}"
 
@@ -338,15 +359,14 @@ class ImageResizeTool(Tool):
     parameters = {"path": "исходник", "dst": "куда", "width": "ширина"}
 
     def run(self, path, dst, width):
+        if Image is None:
+            return "[error] pip install pillow"
         try:
-            from PIL import Image
             im = Image.open(path)
             w = int(width)
             h = int(im.height * w / im.width)
             im.resize((w, h), Image.LANCZOS).save(dst)
             return f"[ok] {w}x{h} → {dst}"
-        except ImportError:
-            return "[error] pip install pillow"
         except Exception as e:
             return f"[error] {type(e).__name__}: {e}"
 
@@ -357,8 +377,9 @@ class ImageConvertTool(Tool):
     parameters = {"path": "исходник", "dst": "куда (расширение=формат)"}
 
     def run(self, path, dst):
+        if Image is None:
+            return "[error] pip install pillow"
         try:
-            from PIL import Image
             im = Image.open(path)
             fmt = Path(dst).suffix.lstrip(".").upper()
             if fmt == "JPG":
@@ -367,8 +388,6 @@ class ImageConvertTool(Tool):
                     im = im.convert("RGB")
             im.save(dst, fmt)
             return f"[ok] {dst}"
-        except ImportError:
-            return "[error] pip install pillow"
         except Exception as e:
             return f"[error] {type(e).__name__}: {e}"
 
@@ -426,9 +445,7 @@ class ProcessTopTool(Tool):
     parameters = {"n": "сколько (10)"}
 
     def run(self, n=10):
-        try:
-            import psutil
-        except ImportError:
+        if psutil is None:
             return "[error] pip install psutil"
         try:
             procs = []
@@ -452,6 +469,7 @@ class DisplayInfoTool(Tool):
     def run(self):
         try:
             import pyautogui
+
             w, h = pyautogui.size()
             return f"Экран: {w}x{h}"
         except Exception as e:

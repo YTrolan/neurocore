@@ -1,72 +1,100 @@
-import getpass
 """NeuroCore — основной интерфейс (до веб-стиля)."""
+import ctypes
+import getpass
 import os
 import subprocess
 import sys
+import threading
 import time
-import webbrowser
+import traceback
+from ctypes import wintypes
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import (QEasingCurve, QEvent, QPoint, QParallelAnimationGroup, QPropertyAnimation,
-                             QSize, Qt, QThread, QTimer, Signal)
-from PySide6.QtGui import QFont, QKeySequence, QShortcut
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
-                                QFileDialog, QFrame,                                QToolButton,
-                                QHBoxLayout, QInputDialog, QLabel, QLineEdit,
-                                QMainWindow, QMenu, QMessageBox, QPushButton,
-                                QScrollArea, QSizePolicy, QSplitter,
-                                QStackedWidget, QTextEdit, QVBoxLayout,
-                                QWidget)
+from PySide6.QtCore import (
+    QEasingCurve,
+    QEvent,
+    QPoint,
+    QPropertyAnimation,
+    QSize,
+    Qt,
+    QThread,
+    QTimer,
+    QUrl,
+    Signal,
+    qInstallMessageHandler,
+)
+from PySide6.QtGui import (
+    QDesktopServices,
+    QImage,
+    QKeySequence,
+    QMouseEvent,
+    QPixmap,
+    QShortcut,
+    QSurfaceFormat,
+    QTextCursor,
+)
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMenu,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QStackedWidget,
+    QTextEdit,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from . import config as cfgmod
 from . import providers as provmod
-from .activity import ActivityBar
-from .animations import (PulsingDots, animate_height, animate_max_width, cross_fade, fade_in, fade_out, fade_and_scale, fade_and_slide_y, pop_in, pulse_scale, slide_fade_in, slide_in_x, slide_in_y, slide_panel, smooth_scroll)
+from .activity import ActivityBar, _verb_for_tool
 from .agent.loop import Agent
-from .clipboard import try_get_image_path, is_image_in_clipboard
+from .animations import PulsingDots, animate_max_width, fade_and_slide_y
+from .clipboard import _save_qimage, try_get_image_path
+from .code_panel import CodePanel, extract_code_blocks
 from .core.message import Message, Role
-from .dialogs import PresetDialog, ProviderDialog
-from .extensions import (PLUGIN_DIR, PLUGIN_TEMPLATE, PRESET_DIR,
-                         load_plugins, load_presets, save_preset, delete_preset,
-                         load_plugin_states)
+from .extensions import load_plugin_states, load_plugins, load_presets
 from .icons import make_icon
 from .image_preview import AttachThumb, ImagePreview, extract_image_paths
-from .code_panel import CodePanel, extract_code_blocks
+from .mac_controls import MacControls
 from .md_render import parse as md_parse
 from .model_selector import ModelSelector
 from .palette import CommandPalette
-from .plugins_page import PluginsPage
-from .stylish_dialogs import (info as sd_info,
-                                warning as sd_warning,
-                                error as sd_error,
-                                success as sd_success,
-                                question as sd_question,
-                                ask_text as sd_ask_text)
-from .stylish_dialogs import DialogOverlay
-from .sessions import DIR as SESSION_DIR
 from .sessions import Session
-from .theme import C, QSS
-from .token_manager import (save_token, load_token,
-                              fetch_token_via_browser)
-from .tools.builtin.files import ListDirTool, ReadFileTool, WriteFileTool
-from .tools.builtin.roblox_auto import RobloxAutoPlayTool
-from .tools.builtin.gui_control import ALL_DESKTOP_TOOLS
-from .tools.builtin.toolkit_v2 import ALL_V2_TOOLS
-from .tools.builtin.toolkit_v3 import ALL_V3_TOOLS
+from .stylish_dialogs import DialogOverlay
+from .stylish_dialogs import ask_text as sd_ask_text
+from .stylish_dialogs import error as sd_error
+from .stylish_dialogs import question as sd_question
+from .stylish_dialogs import warning as sd_warning
+from .theme import QSS, C
+from .token_manager import fetch_token_via_browser, load_token, save_token
 from .tools.builtin.browser_control import ALL_BROWSER_TOOLS
 from .tools.builtin.deepseek_search import DeepSeekSearchTool
+from .tools.builtin.files import ListDirTool, ReadFileTool, WriteFileTool
+from .tools.builtin.gui_control import ALL_DESKTOP_TOOLS
 from .tools.builtin.image import GenerateImageTool
+from .tools.builtin.roblox_auto import RobloxAutoPlayTool
 from .tools.builtin.shell import ShellTool
-from .tools.builtin.web import WebFetchTool, WebSearchTool
+from .tools.builtin.toolkit_v2 import ALL_V2_TOOLS
+from .tools.builtin.toolkit_v3 import ALL_V3_TOOLS
 from .tools.registry import ToolRegistry
 from .tools_panel import ToolsPanel
 from .trajectory import TrajectoryView
 
 VERSION = "3.0.0"
-CONFIG_DIR = Path.home() / ".neurocore"
-CONFIG_FILE = CONFIG_DIR / "config.json"
-CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+CONFIG_DIR = cfgmod.DIR
+CONFIG_FILE = cfgmod.FILE
 
 MONO = "Consolas"
 UI = "Segoe UI"
@@ -337,7 +365,6 @@ class ChatArea(QScrollArea):
 
     def wheelEvent(self, event):
         """Плавный скролл колесом с инерцией."""
-        from PySide6.QtCore import QPropertyAnimation, QEasingCurve
         sb = self.verticalScrollBar()
         if sb is None:
             return
@@ -421,7 +448,6 @@ class ChatArea(QScrollArea):
 
         # 6. Прокрутка вниз
         try:
-            from PySide6.QtCore import QTimer
             QTimer.singleShot(30, self._scroll_to_end)
         except Exception:
             pass
@@ -469,7 +495,6 @@ class ChatArea(QScrollArea):
 
     def to_end(self, smooth=True, duration=560):
         """Плавно прокрутить вниз с easing."""
-        from PySide6.QtCore import QPropertyAnimation, QEasingCurve
         sb = self.verticalScrollBar()
         if sb is None:
             return
@@ -514,10 +539,8 @@ class ChatArea(QScrollArea):
     # ---------- индикатор активности ----------
     def show_activity(self, text, icon="sparkle"):
         """Показать индикатор в конце чата."""
-        from .activity import ActivityBar
         if self._activity_row is None:
             # создаём одноразовый контейнер
-            from PySide6.QtWidgets import QWidget, QHBoxLayout
             row = QWidget()
             rl = QHBoxLayout(row)
             rl.setContentsMargins(4, 10, 4, 4)
@@ -892,12 +915,6 @@ class FullAccessDialog(QDialog):
     """Диалог подтверждения полного доступа к системе."""
 
     def __init__(self, parent=None):
-        from PySide6.QtCore import Qt
-        from PySide6.QtWidgets import (
-            QDialog, QVBoxLayout, QHBoxLayout, QLabel,
-            QCheckBox, QPushButton,
-        )
-
         super().__init__(parent)
         self.setWindowTitle("Включить полный доступ?")
         self.setModal(True)
@@ -1060,9 +1077,6 @@ class InputArea(QWidget):
     ]
 
     def _show_perm_menu(self):
-        from PySide6.QtCore import QPoint
-        from PySide6.QtWidgets import QMenu
-
         menu = QMenu(self)
         for key, label in self.PERM_OPTIONS:
             act = menu.addAction(label)
@@ -1225,10 +1239,8 @@ class InputArea(QWidget):
     def _insert_mime_image(self, md):
         try:
             img = md.imageData()
-            from PySide6.QtGui import QImage
             if not isinstance(img, QImage):
                 return
-            from .clipboard import _save_qimage
             path = _save_qimage(img)
             self._add_attachment(str(path))
         except Exception as e:
@@ -1238,7 +1250,6 @@ class InputArea(QWidget):
         cur = self.editor.toPlainText()
         pre = "\n" if cur and not cur.endswith("\n") else ""
         self.editor.setPlainText(cur + pre + "\n".join(paths) + "\n")
-        from PySide6.QtGui import QTextCursor
         c = self.editor.textCursor()
         c.movePosition(QTextCursor.End)
         self.editor.setTextCursor(c)
@@ -1381,8 +1392,7 @@ class SettingsPage(QWidget):
         t = QLabel("API-токен")
         t.setStyleSheet("font-weight: 700; font-size: 14px;")
         l.addWidget(t)
-        from .token_manager import load_token as _lt
-        tok = _lt() or os.getenv("DEEPSEEK_TOKEN", "")
+        tok = load_token() or os.getenv("DEEPSEEK_TOKEN", "")
         s = QLabel("● Установлен" if tok else "● Не задан")
         s.setStyleSheet(
             "color: " + (C["success"] if tok else C["danger"]) + ";")
@@ -1400,7 +1410,6 @@ class SettingsPage(QWidget):
         self.content.addStretch(1)
 
     def _test(self):
-        import threading
         cfg = cfgmod.load()
         self._lbl.setText("проверяю...")
 
@@ -1511,7 +1520,6 @@ class SettingsPage(QWidget):
 
     def _pick_out_dir(self):
         """Открыть диалог выбора папки."""
-        from PySide6.QtWidgets import QFileDialog
         current = cfgmod.get_output_dir()
         d = QFileDialog.getExistingDirectory(
             self, "Выбери папку для сохранения файлов",
@@ -1546,8 +1554,6 @@ class SettingsPage(QWidget):
 
     def _fetch_token(self):
         """Открыть Chrome, дождаться логина, забрать userToken."""
-        import threading
-
         self._token_btn.setEnabled(False)
         self._token_btn.setText("   Открываю Chrome...")
 
@@ -1597,10 +1603,6 @@ class ImageBubble(QWidget):
 
     def __init__(self, path: str, max_width: int = 480, parent=None):
         super().__init__(parent)
-        from PySide6.QtCore import Qt
-        from PySide6.QtGui import QPixmap
-        from PySide6.QtWidgets import QLabel, QVBoxLayout
-
         self._path = path
         pix = QPixmap(path)
         if pix.isNull():
@@ -1623,8 +1625,6 @@ class ImageBubble(QWidget):
         lay.addWidget(label)
 
     def _open(self):
-        from PySide6.QtCore import QUrl
-        from PySide6.QtGui import QDesktopServices
         QDesktopServices.openUrl(QUrl.fromLocalFile(self._path))
 
 class FullAccessOverlay(QWidget):
@@ -1737,7 +1737,6 @@ class FullAccessOverlay(QWidget):
 
     def eventFilter(self, obj, event):
         """Реагируем на resize родителя — растягиваемся."""
-        from PySide6.QtCore import QEvent
         if obj is self.window() and event.type() == QEvent.Resize:
             if self.isVisible():
                 self.setGeometry(self.window().rect())
@@ -1797,12 +1796,6 @@ class MainWindow(QMainWindow):
 
         self.setStyleSheet(QSS)
 
-        # Acrylic blur
-        try:
-            pass
-        except Exception as e:
-            print("[glass] ошибка:", e)
-
         central = QWidget()
         central.setObjectName("root")
         self.setCentralWidget(central)
@@ -1813,15 +1806,10 @@ class MainWindow(QMainWindow):
 
         # ---------- macOS-кружки ----------
         try:
-            from .mac_controls import MacControls
             self.win_controls = MacControls(self)
             self.win_controls.raise_()
         except Exception as e:
             print("[mac_controls] ошибка:", e)
-
-        # inner_vlay = QVBoxLayout(central)
-        vlay.setContentsMargins(0, 0, 0, 0)
-        vlay.setSpacing(0)
 
         # app_page
         root = QWidget()
@@ -1953,7 +1941,6 @@ class MainWindow(QMainWindow):
         cfgmod.save(cfg)
 
     def toggle_tools(self):
-        from .animations import animate_max_width
         panel = self.tools_panel
         if panel.isVisible() and panel.maximumWidth() > 10:
             animate_max_width(panel, 0, duration=240)
@@ -1983,12 +1970,11 @@ class MainWindow(QMainWindow):
                 p = Path.cwd() / p
             print(f"[panel] пробую: {p}", flush=True)
             if not p.exists():
-                print(f"[panel] НЕ найден", flush=True)
+                print("[panel] НЕ найден", flush=True)
                 return
             self.code_panel.open_file(str(p))
             print(f"[panel] OK: {p.name}", flush=True)
         except Exception as e:
-            import traceback
             print(f"[panel] FAIL: {e}", flush=True)
             traceback.print_exc()
 
@@ -2017,7 +2003,6 @@ class MainWindow(QMainWindow):
                                        stream=stream,
                                        filename=f"code.{lang}")
         except Exception as e:
-            import traceback
             print(f"[code_panel] FAIL: {e}", flush=True)
             traceback.print_exc()
 
@@ -2228,11 +2213,11 @@ class MainWindow(QMainWindow):
         for _T in ALL_BROWSER_TOOLS:
             reg.register(_T())
 
-        # v2 toolkit — 50 новых инструментов
+        # Дополнительные файловые и системные инструменты
         for _T in ALL_V2_TOOLS:
             reg.register(_T())
 
-        # V3 toolkit — 93 инструмента
+        # Инструменты разработки, работы с текстом и данными
         for _T in ALL_V3_TOOLS:
             reg.register(_T())
 
@@ -2251,8 +2236,7 @@ class MainWindow(QMainWindow):
     def _maybe_rotate_session(self):
         """Если чат достиг лимита — создаём новую сессию (сохранив текущую)."""
         try:
-            from . import config as _cfg
-            limit = int(_cfg.load().get("chat_limit", 100))
+            limit = int(cfgmod.load().get("chat_limit", 100))
         except Exception:
             limit = 100
 
@@ -2275,7 +2259,6 @@ class MainWindow(QMainWindow):
 
         # Создаём новую
         try:
-            from .sessions import Session
             old_title = self.current_session.title or "Чат"
             new = Session.new(model=self.current_session.model)
             new.title = old_title + " (продолжение)"
@@ -2298,7 +2281,6 @@ class MainWindow(QMainWindow):
 
         # Показать уведомление в чате
         try:
-            from PySide6.QtWidgets import QLabel
             lbl = QLabel(
                 "ⓘ Чат достиг лимита. Начата новая сессия "
                 "(последние сообщения перенесены).")
@@ -2358,7 +2340,6 @@ class MainWindow(QMainWindow):
 
     def _on_event(self, ev, data):
         try:
-            from .activity import _verb_for_tool
             if ev == "thinking":
                 try:
                     self.chat.add(ThinkingBlock(data["iteration"]))
@@ -2396,8 +2377,7 @@ class MainWindow(QMainWindow):
                     _p = getattr(self, "_pending_write_path", None)
                     if _p:
                         self._pending_write_path = None
-                        from PySide6.QtCore import QTimer as _QT
-                        _QT.singleShot(120, lambda pp=_p: self._open_code_file(pp))
+                        QTimer.singleShot(120, lambda pp=_p: self._open_code_file(pp))
 
                 result = data.get("result", "")
                 print(f"[_on_event] tool_result: {result[:200]!r}", flush=True)
@@ -2408,7 +2388,6 @@ class MainWindow(QMainWindow):
                 try:
                     self._show_new_images()
                 except Exception as e:
-                    import traceback
                     print(f"[_on_event] _maybe_show_image FAIL: {e}", flush=True)
                     traceback.print_exc()
                 try:
@@ -2418,9 +2397,8 @@ class MainWindow(QMainWindow):
                 self.input_area.show_activity("Обрабатывает результат",
                                                 icon="sparkle")
                 try:
-                    from PySide6.QtCore import QTimer as _QT2
                     _res = data.get("result", "")
-                    _QT2.singleShot(0,
+                    QTimer.singleShot(0,
                                     lambda r=_res: self.show_code_in_panel(r))
                 except Exception as _e:
                     print(f'[code_panel tool hook] {_e}', flush=True)
@@ -2429,13 +2407,11 @@ class MainWindow(QMainWindow):
                 l.setStyleSheet("color: " + C["danger"] + ";")
                 self.chat.add(l)
         except Exception:
-            import traceback
             traceback.print_exc()
 
     def _on_done(self, answer):
         try:
-            from PySide6.QtCore import QTimer as _QT
-            _QT.singleShot(0, lambda: self.show_code_in_panel(answer))
+            QTimer.singleShot(0, lambda: self.show_code_in_panel(answer))
         except Exception as _e:
             print(f'[code_panel hook] {_e}', flush=True)
         elapsed = time.time() - self._msg_start
@@ -2471,11 +2447,8 @@ class MainWindow(QMainWindow):
     def _apply_dwm_round(self):
         """Скругление углов через DWM API (Windows 11)."""
         try:
-            import sys as _sys
-            if _sys.platform != "win32":
+            if sys.platform != "win32":
                 return
-            import ctypes
-            from ctypes import wintypes
             hwnd = int(self.winId())
             # DWMWA_WINDOW_CORNER_PREFERENCE = 33
             # DWMWCP_ROUND = 2 (стандартное), ROUNDSMALL = 3
@@ -2490,10 +2463,6 @@ class MainWindow(QMainWindow):
             pass
 
     def eventFilter(self, obj, event):
-        from PySide6.QtCore import QEvent, Qt
-        from PySide6.QtGui import QMouseEvent
-        from PySide6.QtWidgets import QApplication, QPushButton, QToolButton
-
         if event.type() == QEvent.MouseButtonPress and isinstance(event, QMouseEvent):
             if event.button() == Qt.LeftButton:
                 global_pos = event.globalPosition().toPoint()
@@ -2532,9 +2501,8 @@ class MainWindow(QMainWindow):
         self._apply_dwm_round()
 
     def _img_snapshot_now(self):
-        from pathlib import Path as _P
         exts = ("*.png", "*.jpg", "*.jpeg", "*.webp", "*.gif", "*.bmp")
-        cwd = _P.cwd()
+        cwd = Path.cwd()
         s = set()
         for pat in exts:
             for f in cwd.glob(pat):
@@ -2546,10 +2514,8 @@ class MainWindow(QMainWindow):
 
     def _log(self, msg):
         try:
-            from pathlib import Path as _P
-            import datetime
-            line = f"{datetime.datetime.now().isoformat()} {msg}\n"
-            with open(_P.cwd() / "neurocore.log", "a", encoding="utf-8") as f:
+            line = f"{datetime.now().isoformat()} {msg}\n"
+            with open(Path.cwd() / "neurocore.log", "a", encoding="utf-8") as f:
                 f.write(line)
         except Exception:
             pass
@@ -2567,13 +2533,11 @@ class MainWindow(QMainWindow):
                     b = ImageBubble(p)
                     self._log(f"[show] ImageBubble sizeHint={b.sizeHint()}")
                     self.chat.add(b)
-                    self._log(f"[show] OK добавлено в чат")
+                    self._log("[show] OK добавлено в чат")
                 except Exception as e:
-                    import traceback
                     self._log(f"[show] FAIL {type(e).__name__}: {e}")
                     self._log(traceback.format_exc())
         except Exception as e:
-            import traceback
             self._log(f"[show] outer FAIL: {e}")
             self._log(traceback.format_exc())
     def closeEvent(self, event):
@@ -2589,7 +2553,6 @@ class MainWindow(QMainWindow):
 # ============================================================
 def _get_username() -> str:
     """Имя пользователя Windows."""
-    import os
     try:
         name = os.environ.get("USERNAME") or os.environ.get("USER")
         if not name:
@@ -2624,9 +2587,8 @@ def _qt_msg_filter(mode, ctx, msg):
         if pattern in msg:
             return
     try:
-        import sys as _s
-        if _s.stderr is not None:
-            _s.stderr.write(msg + "\n")
+        if sys.stderr is not None:
+            sys.stderr.write(msg + "\n")
     except Exception:
         pass
 
@@ -2634,16 +2596,12 @@ def _qt_msg_filter(mode, ctx, msg):
 def _excepthook(exc_type, exc_val, exc_tb):
     """Логирует исключения, но не падает."""
     try:
-        import traceback as _tb
-        tb = "".join(_tb.format_exception(exc_type, exc_val, exc_tb))
+        tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
         # В файл рядом с .exe
         try:
-            import sys as _s
-            from pathlib import Path as _P
-            log = _P.cwd() / "neurocore_crash.log"
+            log = Path.cwd() / "neurocore_crash.log"
             with open(log, "a", encoding="utf-8") as f:
-                import datetime as _dt
-                f.write(f"\n[{_dt.datetime.now()}]\n{tb}\n")
+                f.write(f"\n[{datetime.now()}]\n{tb}\n")
         except Exception:
             pass
     except Exception:
@@ -2651,26 +2609,22 @@ def _excepthook(exc_type, exc_val, exc_tb):
 
 
 def main():
-    import sys as _s
-    _s.excepthook = _excepthook
+    sys.excepthook = _excepthook
     # Фикс для .exe: sys.stderr и sys.stdout могут быть None
-    import sys as _s, os as _o
-    if _s.stderr is None:
+    if sys.stderr is None:
         try:
-            _s.stderr = open(_o.devnull, "w")
+            sys.stderr = open(os.devnull, "w")
         except Exception:
             pass
-    if _s.stdout is None:
+    if sys.stdout is None:
         try:
-            _s.stdout = open(_o.devnull, "w")
+            sys.stdout = open(os.devnull, "w")
         except Exception:
             pass
     try:
-        from PySide6.QtCore import qInstallMessageHandler
         qInstallMessageHandler(_qt_msg_filter)
     except Exception:
         pass
-    from PySide6.QtGui import QSurfaceFormat
     fmt = QSurfaceFormat()
     fmt.setSwapInterval(1)
     QSurfaceFormat.setDefaultFormat(fmt)
@@ -2682,7 +2636,6 @@ def main():
     w = MainWindow()
     w.show()
 
-    from PySide6.QtCore import QTimer
     QTimer.singleShot(80, w._apply_dwm_round)
     QTimer.singleShot(300, w._apply_dwm_round)
 

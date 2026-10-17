@@ -1,9 +1,18 @@
 """NeuroCore анимации — плавные и заметные, без QGraphicsEffect."""
 import math
-from PySide6.QtCore import (QPropertyAnimation, QEasingCurve, QPoint,
-                             QParallelAnimationGroup, QSequentialAnimationGroup,
-                             QTimer, Qt, QSize, QAbstractAnimation, QRect)
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QGraphicsOpacityEffect
+
+from PySide6.QtCore import (
+    QAbstractAnimation,
+    QEasingCurve,
+    QPoint,
+    QPropertyAnimation,
+    QSequentialAnimationGroup,
+    QSize,
+    QTimer,
+)
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
+
+from .theme import C
 
 
 # ============================================================
@@ -365,7 +374,6 @@ def stagger_pulse(widgets, gap=60, scale=1.04):
 class PulsingDots(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        from .theme import C
         lay = QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(3)
@@ -383,7 +391,6 @@ class PulsingDots(QWidget):
         self._timer.start()
 
     def _tick(self):
-        from .theme import C
         for i, l in enumerate(self._lbls):
             color = C["accent"] if i == self._phase % 3 else C["text_mute"]
             l.setStyleSheet(f"color: {color}; font-size: 8px;")

@@ -1,8 +1,9 @@
 """SVG icons (Lucide-style, stroke-based) → QIcon."""
-from PySide6.QtCore import QByteArray, Qt, QSize
+import re
+
+from PySide6.QtCore import QByteArray, Qt
 from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
-
 
 SVG = {}
 
@@ -329,8 +330,6 @@ def make_icon(name: str, color: str = "#ececec", size: int = 20):
 
 def _make_icon_raw(name: str, color: str = "#ececec", size: int = 20):
     """Рендерит SVG в QIcon с запасом, antialiasing и 3x для чёткости."""
-    import re
-
     svg = SVG.get(name)
     if not svg:
         return QIcon()

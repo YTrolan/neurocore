@@ -6,7 +6,6 @@ from pathlib import Path
 
 from ..base import Tool
 
-
 ENDPOINTS = [
     "https://image.pollinations.ai/prompt/{p}?width={w}&height={h}&nologo=true",
     "https://image.pollinations.ai/prompt/{p}?width={w}&height={h}&nologo=true&model=flux",

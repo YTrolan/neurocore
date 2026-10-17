@@ -8,8 +8,8 @@
 
 def _fix_streams():
     """sys.stdout/stderr могут быть None в windowed-сборке .exe."""
-    import sys
     import os
+    import sys
     if sys.stdout is None:
         try:
             sys.stdout = open(os.devnull, "w")

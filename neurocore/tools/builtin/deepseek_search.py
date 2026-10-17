@@ -1,5 +1,4 @@
 """Поиск через встроенный DeepSeek Search (только Flash)."""
-import os
 import time
 
 from ...token_manager import load_token

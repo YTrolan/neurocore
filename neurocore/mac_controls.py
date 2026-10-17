@@ -1,7 +1,7 @@
 """macOS-стиль кнопок окна — три цветных кружка слева."""
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPainter, QPen
-from PySide6.QtWidgets import (QHBoxLayout, QPushButton, QWidget)
+from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 
 class TrafficLight(QPushButton):

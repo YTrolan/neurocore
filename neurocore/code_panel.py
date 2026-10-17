@@ -2,17 +2,19 @@
 import re
 from pathlib import Path
 
-from PySide6.QtCore import (Qt, QTimer, Signal, QSize, QFileSystemWatcher,
-                             QRegularExpression)
-from PySide6.QtGui import (QFont, QSyntaxHighlighter, QTextCharFormat, QColor,
-                            QTextCursor, QPainter)
+from PySide6.QtCore import QFileSystemWatcher, QRegularExpression, QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QFont, QPainter, QSyntaxHighlighter, QTextCharFormat
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QFrame, QPlainTextEdit, QApplication,
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QPlainTextEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
 
 from .theme import C
-
 
 UI = "Segoe UI"
 MONO = "Consolas"

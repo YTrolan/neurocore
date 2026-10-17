@@ -2,6 +2,7 @@
 import os
 from abc import ABC, abstractmethod
 
+from . import config as cfgmod
 from .core.message import Message, Role
 from .deepseek_client import DeepSeekClient
 from .token_manager import load_token
@@ -72,6 +73,7 @@ class OpenAICompatProvider(Provider):
 
     def __init__(self, base_url, api_key, model):
         from openai import OpenAI
+
         self._client = OpenAI(base_url=base_url, api_key=api_key or "none")
         self.model = model
         self.name = base_url
@@ -97,7 +99,6 @@ class OpenAICompatProvider(Provider):
 
 def build(cfg: dict):
     """Собирает активный провайдер из конфига."""
-    from . import config as cfgmod
     p = cfgmod.active_provider(cfg)
     model = cfg.get("active_model") or (p["models"][0] if p["models"] else "")
     if p["kind"] == "opendeep":

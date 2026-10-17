@@ -8,7 +8,6 @@ from ..core.message import Message, Role
 from ..core.provider import Provider
 from ..tools.registry import ToolRegistry
 
-
 SYSTEM_PROMPT = """Ты — NeuroCore, автономный агент. Решаешь задачи через инструменты.
 
 ОКРУЖЕНИЕ:
@@ -266,9 +265,8 @@ class Agent:
                 args = call.get("arguments", {}) or {}
                 self._emit("tool_call", name=name, arguments=args)
 
-                import json as _json
                 try:
-                    sig = name + ":" + _json.dumps(args, sort_keys=True, ensure_ascii=False)
+                    sig = name + ":" + json.dumps(args, sort_keys=True, ensure_ascii=False)
                 except Exception:
                     sig = name + ":" + str(args)
 
